@@ -6,7 +6,7 @@
 <title>자산 시뮬레이터</title>
 <script>window.APP_LOCALE='ko';window.APP_CURRENCY='KRW';</script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="../css/style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -32,9 +32,7 @@
 <div class="app">
 <div class="left-panel">
 
-  <!-- ① 기본 정보 탭 -->
   <div class="tab-panel active" id="panel-basic">
-
     <div class="section">
       <div class="sec-title" data-i18n="section.basic">기본 정보</div>
       <div class="row2">
@@ -42,57 +40,52 @@
         <div class="field"><label data-i18n="label.retireAge">은퇴 목표 나이</label><div class="iw"><input type="number" id="retireAge" value="55" min="1" max="99"><span class="sfx" data-i18n-sfx="ageSfx">세</span></div></div>
       </div>
     </div>
-
     <div class="section">
       <div class="sec-title" data-i18n="section.invest">투자 / 저축 자산</div>
-      <div class="field"><label data-i18n="label.investAsset">투자 · 저축 (비연금)</label><div class="iw"><input type="text" id="investAsset" value="50000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+      <div class="field"><label data-i18n="label.investAsset">투자 · 저축 (비연금)</label><div class="iw"><input type="text" id="investAsset" value="50000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
       <div class="row2">
         <div class="field"><label data-i18n="label.returnRate">투자 수익률</label><div class="iw"><input type="text" id="returnRate" value="7" placeholder="0"><span class="sfx">%</span></div></div>
         <div class="field"><label data-i18n="label.inflation">인플레이션</label><div class="iw"><input type="text" id="inflation" value="2.5" placeholder="0"><span class="sfx">%</span></div></div>
       </div>
     </div>
-
     <div class="section">
       <div class="sec-title" data-i18n="section.real">실물 자산</div>
       <div class="row2">
-        <div class="field"><label data-i18n="label.realEstate">부동산 (시장가)</label><div class="iw"><input type="text" id="realEstate" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
-        <div class="field"><label data-i18n="label.vehicle">차량</label><div class="iw"><input type="text" id="vehicle" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+        <div class="field"><label data-i18n="label.realEstate">부동산 (시장가)</label><div class="iw"><input type="text" id="realEstate" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
+        <div class="field"><label data-i18n="label.vehicle">차량</label><div class="iw"><input type="text" id="vehicle" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
       </div>
-      <div class="field"><label data-i18n="label.otherAsset">기타 실물</label><div class="iw"><input type="text" id="otherAsset" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+      <div class="field"><label data-i18n="label.otherAsset">기타 실물</label><div class="iw"><input type="text" id="otherAsset" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
     </div>
-
     <div class="section">
       <div class="sec-title red" data-i18n="section.debt">부채</div>
       <div class="row2">
-        <div class="field"><label data-i18n="label.mortgage">모기지 잔액</label><div class="iw"><input type="text" id="mortgage" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+        <div class="field"><label data-i18n="label.mortgage">모기지 잔액</label><div class="iw"><input type="text" id="mortgage" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
         <div class="field"><label data-i18n="label.mortgageRate">모기지 이자율</label><div class="iw"><input type="text" id="mortgageRate" value="6.5" placeholder="0"><span class="sfx">%</span></div></div>
       </div>
       <div class="row2">
-        <div class="field"><label data-i18n="label.studentLoan">학자금 대출</label><div class="iw"><input type="text" id="studentLoan" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+        <div class="field"><label data-i18n="label.studentLoan">학자금 대출</label><div class="iw"><input type="text" id="studentLoan" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
         <div class="field"><label data-i18n="label.studentLoanRate">학자금 이자율</label><div class="iw"><input type="text" id="studentLoanRate" value="5" placeholder="0"><span class="sfx">%</span></div></div>
       </div>
       <div class="row2">
-        <div class="field"><label data-i18n="label.carLoan">자동차 할부</label><div class="iw"><input type="text" id="carLoan" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
-        <div class="field"><label data-i18n="label.otherDebt">기타 부채</label><div class="iw"><input type="text" id="otherDebt" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+        <div class="field"><label data-i18n="label.carLoan">자동차 할부</label><div class="iw"><input type="text" id="carLoan" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
+        <div class="field"><label data-i18n="label.otherDebt">기타 부채</label><div class="iw"><input type="text" id="otherDebt" value="0" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
       </div>
     </div>
-
     <div class="section">
       <div class="sec-title" data-i18n="section.income">연간 수입 & 지출</div>
-      <div class="field"><label data-i18n="label.annualIncome">연 수입 (세후)</label><div class="iw"><input type="text" id="annualIncome" value="80000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+      <div class="field"><label data-i18n="label.annualIncome">연 수입 (세후)</label><div class="iw"><input type="text" id="annualIncome" value="80000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
       <div class="field">
         <label data-i18n="label.wageGrowth">연봉 상승률
           <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="tooltip.wageGrowth" data-i18n-html>매년 연 수입이 늘어나는 비율.<br>인플레이션과 별개로 설정.</span></span>
         </label>
         <div class="iw"><input type="text" id="wageGrowthRate" value="2" placeholder="0"><span class="sfx">%</span></div>
       </div>
-      <div class="field"><label data-i18n="label.annualExpense">연 지출</label><div class="iw"><input type="text" id="annualExpense" value="50000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+      <div class="field"><label data-i18n="label.annualExpense">연 지출</label><div class="iw"><input type="text" id="annualExpense" value="50000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
     </div>
-
     <div class="section">
       <div class="sec-title teal" data-i18n="section.fire">4% 법칙 — 은퇴 목표</div>
       <div class="row2">
-        <div class="field"><label data-i18n="label.targetMonthly">목표 월 생활비</label><div class="iw"><input type="text" id="targetMonthly" value="3000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">USD</span></div></div>
+        <div class="field"><label data-i18n="label.targetMonthly">목표 월 생활비</label><div class="iw"><input type="text" id="targetMonthly" value="3000" placeholder="0"><span class="sfx" data-i18n-sfx="currencySfx">원</span></div></div>
         <div class="field">
           <label data-i18n="label.withdrawRate">인출률
             <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="tooltip.withdrawRate" data-i18n-html>은퇴 자산에서 매년 꺼내 쓰는 비율.<br>4% = 원금 유지 (30년 기준)<br>3.5% = 보수적 (40년+ 장기)<br>5% = 낙관적</span></span>
@@ -104,7 +97,7 @@
         <label data-i18n="label.externalPension">국민연금 / Social Security 월 수령액
           <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="tooltip.externalPension" data-i18n-html>국가에서 매달 자동으로 지급하는 연금.<br>Roth IRA·401k 인출은 여기 해당 없음.<br>해당 없으면 0.</span></span>
         </label>
-        <div class="iw"><input type="text" id="externalPension" value="0" placeholder="0 (해당 없으면 0)"><span class="sfx" data-i18n-sfx="currencySfxMonthly">USD/월</span></div>
+        <div class="iw"><input type="text" id="externalPension" value="0" placeholder="0 (해당 없으면 0)"><span class="sfx" data-i18n-sfx="currencySfxMonthly">원/월</span></div>
       </div>
       <div class="fire-box" id="fireBox">
         <div class="fire-row">
@@ -129,10 +122,7 @@
         </div>
       </div>
     </div>
-
-  </div><!-- /panel-basic -->
-
-  <!-- ② 연금 계좌 탭 -->
+  </div>
   <div class="tab-panel" id="panel-accounts">
     <div class="accounts-wrap">
       <div class="acc-header">
@@ -143,9 +133,7 @@
         <div class="no-accs" id="noAccsMsg" data-i18n="accounts.noAccs" data-i18n-html>계좌가 없습니다.<br>Roth IRA, 연금저축펀드 등을 추가하세요.</div>
       </div>
     </div>
-  </div><!-- /panel-accounts -->
-
-  <!-- ③ 이벤트 탭 -->
+  </div>
   <div class="tab-panel" id="panel-events">
     <div class="events-wrap">
       <div class="ev-header">
@@ -156,13 +144,10 @@
         <div class="no-evs" id="noEventsMsg" data-i18n="events.noEvs">이벤트가 없습니다.</div>
       </div>
     </div>
-  </div><!-- /panel-events -->
-
-</div><!-- /left-panel -->
+  </div>
+</div>
 
 <div class="right-panel">
-
-  <!-- 차트 탭 패널 -->
   <div class="tab-panel active" id="panel-chart">
     <div class="summary-row">
       <div class="sum-card">
@@ -191,20 +176,16 @@
         <div class="sub" data-i18n="summary.subSave">수입 − 지출 − 부채상환</div>
       </div>
     </div>
-
     <div class="chart-wrap">
       <canvas id="mainChart"></canvas>
     </div>
-
     <div class="sc-bar">
       <span class="sc-lbl" id="sc-lbl" data-i18n="chart.scenario">시나리오</span>
       <button class="sc-btn active" id="tab-base" onclick="switchSc('base')" data-i18n="chart.base">기본</button>
       <button class="sc-btn" id="tab-opt" onclick="switchSc('opt')" data-i18n="chart.opt">낙관 (+2%)</button>
       <button class="sc-btn" id="tab-pes" onclick="switchSc('pes')" data-i18n="chart.pes">비관 (−2%)</button>
     </div>
-  </div><!-- /panel-chart -->
-
-  <!-- 테이블 탭 패널 -->
+  </div>
   <div class="tab-panel active" id="panel-table">
     <div class="tbl-section">
       <div class="tbl-top">
@@ -216,11 +197,10 @@
         <tbody id="tblBody"></tbody>
       </table>
     </div>
-  </div><!-- /panel-table -->
+  </div>
+</div>
+</div>
 
-</div><!-- /right-panel -->
-</div><!-- /app -->
-
-<script src="js/app.js"></script>
+<script src="../js/app.js"></script>
 </body>
 </html>

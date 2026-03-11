@@ -22,6 +22,100 @@ const ACC_TYPES = {
   taxable:     { label: '일반 과세 계좌',              badge: 'badge-taxable',     color: '#d4a853', taxOnContrib: false, taxOnWithdraw: false, desc: '수익에 대해 매년 과세' },
 };
 
+const LOCALE = (typeof window !== 'undefined' && window.APP_LOCALE) || 'ko';
+const CURRENCY = (typeof window !== 'undefined' && window.APP_CURRENCY) || 'KRW';
+
+const T = {
+  ko: {
+    ageSfx: '세', currencySfx: '원', currencySfxMonthly: '원/월', currencySfxYr: '원/년',
+    nav: { basic: '기본', accounts: '계좌', events: '이벤트', chart: '차트', table: '테이블' },
+    title: '자산 시뮬레이터', subtitle: '다중 계좌 · 세율 반영 · 인생 이벤트 · 장기 자산 흐름',
+    section: { basic: '기본 정보', invest: '투자 / 저축 자산', real: '실물 자산', debt: '부채', income: '연간 수입 & 지출', fire: '4% 법칙 — 은퇴 목표' },
+    label: {
+      currentAge: '현재 나이', retireAge: '은퇴 목표 나이', investAsset: '투자 · 저축 (비연금)', returnRate: '투자 수익률', inflation: '인플레이션',
+      realEstate: '부동산 (시장가)', vehicle: '차량', otherAsset: '기타 실물',
+      mortgage: '모기지 잔액', mortgageRate: '모기지 이자율', studentLoan: '학자금 대출', studentLoanRate: '학자금 이자율', carLoan: '자동차 할부', otherDebt: '기타 부채',
+      annualIncome: '연 수입 (세후)', wageGrowth: '연봉 상승률', annualExpense: '연 지출',
+      targetMonthly: '목표 월 생활비', withdrawRate: '인출률', externalPension: '국민연금 / Social Security 월 수령액',
+    },
+    tooltip: { wageGrowth: '매년 연 수입이 늘어나는 비율.<br>인플레이션과 별개로 설정.', withdrawRate: '은퇴 자산에서 매년 꺼내 쓰는 비율.<br>4% = 원금 유지 (30년 기준)<br>3.5% = 보수적 (40년+ 장기)<br>5% = 낙관적', externalPension: '국가에서 매달 자동으로 지급하는 연금.<br>Roth IRA·401k 인출은 여기 해당 없음.<br>해당 없으면 0.' },
+    fire: { need: '필요 은퇴 자산', needNet: '국민연금 반영 시 필요액', progress: '달성률 (계좌 합계 자동 반영)', now: '현재', atRetire: '은퇴 시' },
+    accounts: { title: '연금 · 투자 계좌', add: '+ 계좌 추가', noAccs: '계좌가 없습니다.<br>Roth IRA, 연금저축펀드 등을 추가하세요.' },
+    events: { title: '인생 이벤트', add: '+ 이벤트 추가', noEvs: '이벤트가 없습니다.' },
+    summary: { nw: '순자산 (Net Worth)', subNW: '자산 {assets} − 부채 {debt}', debt: '총 부채', noDebt: '부채 없음 ✓', debtLabel: '부채', mortgage: '모기지', studentLoan: '학자금', car: '차량', other: '기타', retire: '은퇴 시 예상 (세후)', subRetire: '투자 {invest} · 계좌 {acc}', deplete: '자산 소진 예상', depleteSub: '전체 자산 소진 예상', noDeplete: '100세+', noDepleteSub: '기간 내 소진 없음 ✓', save: '연간 순저축', subSave: '수입 − 지출 − 부채상환', ageSuffix: '세' },
+    chart: { total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)' },
+    table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
+    acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
+    ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', noName: '이름 없음', delete: '🗑 삭제' },
+    accType: { roth_label: 'Roth IRA', roth_desc: '세후 납입 → 인출 비과세', traditional_label: 'Traditional IRA / 401k', traditional_desc: '세전 납입 → 인출 시 과세', pension_kr_label: '한국 연금저축펀드', pension_kr_desc: '세전 납입 → 연금소득세 과세', taxable_label: '일반 과세 계좌', taxable_desc: '수익에 대해 매년 과세', account: '계좌' },
+    evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
+    exportCopy: '데이터 복사 (채팅에 붙여넣기)', exportToast: '클립보드에 복사됨. 채팅에 붙여넣어 전달하세요.', exportFailed: '복사 실패. 수동으로 복사해 주세요.',
+  },
+  en: {
+    ageSfx: ' yrs', currencySfx: 'USD', currencySfxMonthly: 'USD/mo', currencySfxYr: 'USD/yr',
+    nav: { basic: 'Basic', accounts: 'Accounts', events: 'Events', chart: 'Chart', table: 'Table' },
+    title: 'Net Worth Simulator', subtitle: 'Multi-account · Tax-aware · Life events · Long-term flow',
+    section: { basic: 'Basic', invest: 'Investment / Savings', real: 'Real Assets', debt: 'Debt', income: 'Income & Expense', fire: '4% Rule — Retirement' },
+    label: {
+      currentAge: 'Current age', retireAge: 'Retirement age', investAsset: 'Investment · Savings (non-pension)', returnRate: 'Return rate', inflation: 'Inflation',
+      realEstate: 'Real estate', vehicle: 'Vehicle', otherAsset: 'Other real',
+      mortgage: 'Mortgage balance', mortgageRate: 'Mortgage rate', studentLoan: 'Student loan', studentLoanRate: 'Student loan rate', carLoan: 'Car loan', otherDebt: 'Other debt',
+      annualIncome: 'Annual income (after tax)', wageGrowth: 'Wage growth rate', annualExpense: 'Annual expense',
+      targetMonthly: 'Target monthly expense', withdrawRate: 'Withdrawal rate', externalPension: 'Social Security / pension (monthly)',
+    },
+    tooltip: { wageGrowth: 'Annual wage growth rate.<br>Independent of inflation.', withdrawRate: 'Annual withdrawal rate from retirement assets.<br>4% = 30-year rule<br>3.5% = conservative (40+ yrs)<br>5% = aggressive', externalPension: 'Monthly pension from government.<br>Exclude Roth/401k withdrawals.<br>0 if not applicable.' },
+    fire: { need: 'Required retirement assets', needNet: 'Required (net of pension)', progress: 'Progress (accounts)', now: 'Now', atRetire: 'At retirement' },
+    accounts: { title: 'Pension · Investment accounts', add: '+ Add account', noAccs: 'No accounts.<br>Add Roth IRA, 401k, etc.' },
+    events: { title: 'Life events', add: '+ Add event', noEvs: 'No events.' },
+    summary: { nw: 'Net Worth', subNW: 'Assets {assets} − Debt {debt}', debt: 'Total debt', noDebt: 'No debt ✓', debtLabel: 'Debt', mortgage: 'Mortgage', studentLoan: 'Student', car: 'Car', other: 'Other', retire: 'At retirement (after tax)', subRetire: 'Invest {invest} · Accounts {acc}', deplete: 'Asset depletion', depleteSub: 'Estimated depletion', noDeplete: '100+', noDepleteSub: 'No depletion ✓', save: 'Annual net savings', subSave: 'Income − Expense − Debt repay', ageSuffix: ' yrs' },
+    chart: { total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)' },
+    table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
+    acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
+    ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', income: '💹 Income change', expense: '💸 Expense change', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', noName: 'Unnamed', delete: '🗑 Delete' },
+    accType: { roth_label: 'Roth IRA', roth_desc: 'After-tax → tax-free withdrawal', traditional_label: 'Traditional IRA / 401k', traditional_desc: 'Pre-tax → taxed on withdrawal', pension_kr_label: 'Korea pension fund', pension_kr_desc: 'Pre-tax → pension tax on withdrawal', taxable_label: 'Taxable account', taxable_desc: 'Taxed annually on gains', account: 'Account' },
+    evBadge: { income: '💹 Income', expense: '💸 Expense', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
+    exportCopy: 'Copy data (paste in chat)', exportToast: 'Copied to clipboard. Paste in chat to share.', exportFailed: 'Copy failed. Copy manually.',
+  },
+};
+function t(key) {
+  const parts = key.split('.');
+  let o = T[LOCALE];
+  for (const p of parts) {
+    o = o && o[p];
+  }
+  if (typeof o === 'string') return o;
+  let fallback = T.ko;
+  for (const p of parts) fallback = fallback && fallback[p];
+  return (typeof fallback === 'string' ? fallback : key);
+}
+function applyLocale() {
+  const title = t('title');
+  if (title && document.title !== title) document.title = title;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (!val) return;
+    if (el.getAttribute('data-i18n-html') !== null) {
+      if (el.innerHTML !== val) el.innerHTML = val;
+    } else if (el.textContent !== val) {
+      el.textContent = val;
+    }
+  });
+  document.querySelectorAll('[data-i18n-sfx]').forEach(el => {
+    const key = el.getAttribute('data-i18n-sfx');
+    const val = t(key);
+    if (val) el.textContent = val;
+  });
+}
+function getAccTypeLabel(type) {
+  const v = t('accType.' + type + '_label');
+  return (v && v !== 'accType.' + type + '_label') ? v : (ACC_TYPES[type]?.label || t('accType.account'));
+}
+function getAccTypeDesc(type) {
+  const v = t('accType.' + type + '_desc');
+  return (v && v !== 'accType.' + type + '_desc') ? v : (ACC_TYPES[type]?.desc || '');
+}
+
 const STORAGE_KEY = 'networth-simulator-state';
 const INPUT_IDS = [
   'currentAge', 'retireAge', 'investAsset', 'returnRate', 'inflation', 'wageGrowthRate',
@@ -55,6 +149,43 @@ function saveState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) { /* quota or disabled */ }
   }, 400);
+}
+
+function getStateForExport() {
+  const inputs = {};
+  for (const id of INPUT_IDS) {
+    const el = document.getElementById(id);
+    if (el) inputs[id] = el.value;
+  }
+  const showRetireOnlyEl = document.getElementById('showRetireOnly');
+  return {
+    inputs,
+    accounts: accounts.map(a => ({ ...a })),
+    events: events.map(e => ({ ...e })),
+    currentSc,
+    showRetireOnly: showRetireOnlyEl ? showRetireOnlyEl.checked : false,
+  };
+}
+
+function copyStateToClipboard() {
+  const state = getStateForExport();
+  const json = JSON.stringify(state, null, 2);
+  const wrap = '```json\n' + json + '\n```';
+  navigator.clipboard.writeText(wrap).then(() => {
+    const el = document.getElementById('exportToast');
+    if (el) {
+      el.textContent = t('exportToast');
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2500);
+    }
+  }).catch(() => {
+    const el = document.getElementById('exportToast');
+    if (el) {
+      el.textContent = t('exportFailed');
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+  });
 }
 
 function loadState() {
@@ -111,8 +242,14 @@ function parseMoney(str) {
 
 function fmt(n) {
   if (n == null || isNaN(n)) return '—';
-  const s = n < 0 ? '-$' : '$';
   const a = Math.abs(Math.round(n));
+  if (CURRENCY === 'KRW') {
+    const sign = n < 0 ? '-' : '';
+    if (a >= 1e8) return sign + '₩' + (a / 1e8).toFixed(1) + '억';
+    if (a >= 1e4) return sign + '₩' + (a / 1e4).toFixed(0) + '만';
+    return (n < 0 ? '-' : '') + '₩' + a.toLocaleString('ko-KR');
+  }
+  const s = n < 0 ? '-$' : '$';
   if (a >= 1e9) return s + (a / 1e9).toFixed(2) + 'B';
   if (a >= 1e6) return s + (a / 1e6).toFixed(2) + 'M';
   if (a >= 1e3) return s + (a / 1e3).toFixed(1) + 'K';
@@ -280,36 +417,36 @@ function renderSummary(rows) {
 
   document.getElementById('sumNW').textContent = fmt(netWorth);
   document.getElementById('sumNW').className = 'val ' + (netWorth >= 0 ? 'co' : 'cr');
-  document.getElementById('subNW').textContent = `자산 ${fmt(totalAssets)} − 부채 ${fmt(totalDebt)}`;
+  document.getElementById('subNW').textContent = t('summary.subNW').replace('{assets}', fmt(totalAssets)).replace('{debt}', fmt(totalDebt));
 
   document.getElementById('sumDebt').textContent = fmt(totalDebt);
   document.getElementById('sumDebt').className = 'val ' + (totalDebt > 0 ? 'cr' : 'cg');
   const debtParts = [];
-  if (pN('mortgage') > 0) debtParts.push('모기지 ' + fmt(pN('mortgage')));
-  if (pN('studentLoan') > 0) debtParts.push('학자금 ' + fmt(pN('studentLoan')));
-  if (pN('carLoan') > 0) debtParts.push('차량 ' + fmt(pN('carLoan')));
-  if (pN('otherDebt') > 0) debtParts.push('기타 ' + fmt(pN('otherDebt')));
+  if (pN('mortgage') > 0) debtParts.push(t('summary.mortgage') + ' ' + fmt(pN('mortgage')));
+  if (pN('studentLoan') > 0) debtParts.push(t('summary.studentLoan') + ' ' + fmt(pN('studentLoan')));
+  if (pN('carLoan') > 0) debtParts.push(t('summary.car') + ' ' + fmt(pN('carLoan')));
+  if (pN('otherDebt') > 0) debtParts.push(t('summary.other') + ' ' + fmt(pN('otherDebt')));
   document.getElementById('subDebt').textContent = totalDebt > 0
-    ? (debtParts.length ? debtParts.join(' · ') : '부채')
-    : '부채 없음 ✓';
+    ? (debtParts.length ? debtParts.join(' · ') : t('summary.debtLabel'))
+    : t('summary.noDebt');
 
   const retAge = pN('retireAge');
   const rr = rows.find(r => r.age === retAge);
   if (rr) {
     document.getElementById('sumRetire').textContent = fmt(rr.totalLiquid);
     document.getElementById('sumRetire').className = 'val ' + (rr.totalLiquid > 0 ? 'cg' : 'cr');
-    document.getElementById('subRetire').textContent = `투자 ${fmt(Math.max(0, rr.invest))} · 계좌 ${fmt(rr.totalAccAfterTax)}`;
+    document.getElementById('subRetire').textContent = t('summary.subRetire').replace('{invest}', fmt(Math.max(0, rr.invest))).replace('{acc}', fmt(rr.totalAccAfterTax));
   }
 
   const dep = rows.find(r => r.totalLiquid <= 0);
   if (dep) {
-    document.getElementById('sumDeplete').textContent = dep.age + '세';
+    document.getElementById('sumDeplete').textContent = dep.age + t('summary.ageSuffix');
     document.getElementById('sumDeplete').className = 'val cr';
-    document.getElementById('subDeplete').textContent = '전체 자산 소진 예상';
+    document.getElementById('subDeplete').textContent = t('summary.depleteSub');
   } else {
-    document.getElementById('sumDeplete').textContent = '100세+';
+    document.getElementById('sumDeplete').textContent = t('summary.noDeplete');
     document.getElementById('sumDeplete').className = 'val cg';
-    document.getElementById('subDeplete').textContent = '기간 내 소진 없음 ✓';
+    document.getElementById('subDeplete').textContent = t('summary.noDepleteSub');
   }
 
   // Annual net savings = income - expense - debt repayment (matches subtitle)
@@ -333,7 +470,8 @@ function renderSummary(rows) {
 // CHART
 // ═══════════════════════════════════════════════════
 function renderChart(rows) {
-  const labels = rows.map(r => r.age + '세');
+  const ageSfx = t('summary.ageSuffix');
+  const labels = rows.map(r => r.age + ageSfx);
   const totalD = rows.map(r => Math.round(r.totalLiquid));
   const investD = rows.map(r => r.invest >= 0 ? Math.round(r.invest) : null);
   const accD = rows.map(r => Math.round(r.totalAccAfterTax));
@@ -345,9 +483,9 @@ function renderChart(rows) {
     data: {
       labels,
       datasets: [
-        { label: '총 자산 (세후)', data: totalD, borderColor: '#d4a853', backgroundColor: 'rgba(212,168,83,0.07)', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 },
-        { label: '투자자산', data: investD, borderColor: '#5b9bd5', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, borderDash: [4, 3], tension: 0.3 },
-        { label: '연금계좌 합계 (세후)', data: accD, borderColor: '#5bbfb5', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
+        { label: t('chart.total'), data: totalD, borderColor: '#d4a853', backgroundColor: 'rgba(212,168,83,0.07)', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 },
+        { label: t('chart.invest'), data: investD, borderColor: '#5b9bd5', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, borderDash: [4, 3], tension: 0.3 },
+        { label: t('chart.acc'), data: accD, borderColor: '#5bbfb5', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
       ],
     },
     options: {
@@ -383,13 +521,14 @@ function renderTable(rows) {
   const head = document.getElementById('tblHead');
   const body = document.getElementById('tblBody');
 
-  const accCols = accounts.map(a => a.name || (ACC_TYPES[a.type]?.label || '계좌'));
+  const accCols = accounts.map(a => a.name || getAccTypeLabel(a.type));
+  const ageSfx = t('summary.ageSuffix');
   head.innerHTML = `<tr>
-    <th>나이</th><th>이벤트</th>
-    <th>연 수입</th><th>연 지출</th><th>순저축</th>
-    <th>투자/저축자산</th>
+    <th>${t('table.age')}</th><th>${t('table.event')}</th>
+    <th>${t('table.income')}</th><th>${t('table.expense')}</th><th>${t('table.savings')}</th>
+    <th>${t('table.investCol')}</th>
     ${accCols.map(n => `<th>${n}</th>`).join('')}
-    <th>총자산(세후)</th>
+    <th>${t('table.total')}</th>
   </tr>`;
 
   body.innerHTML = '';
@@ -398,15 +537,16 @@ function renderTable(rows) {
     const tr = document.createElement('tr');
     if (r.age === retAge) tr.classList.add('hl');
 
-    let ageCell = r.age + '세';
-    if (r.age === retAge) ageCell += '<span class="retire-tag">은퇴</span>';
+    let ageCell = r.age + ageSfx;
+    if (r.age === retAge) ageCell += '<span class="retire-tag">' + t('table.retireTag') + '</span>';
 
-    const evCell = r.events.map(e => `<span class="edot edot-${e.type}">${e.label}</span>`).join('') || '<span style="color:var(--text3)">—</span>';
+    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${e.type}">${e.label}</span>`).join('') : '<span style="color:var(--text3)">—</span>';
+    const evCell = `<div class="ev-cell-inner">${evContent}</div>`;
     const inc = r.income != null ? fmt(r.income) : '<span style="color:var(--text3)">—</span>';
     const exp = fmt(r.expense);
     const sav = fmt(r.savings);
     const savC = r.savings >= 0 ? 'pos' : 'neg';
-    const inv = r.invest < 0 ? '<span class="neg">소진</span>' : fmt(r.invest);
+    const inv = r.invest < 0 ? '<span class="neg">' + t('table.depleted') + '</span>' : fmt(r.invest);
     const invC = r.invest < 0 ? 'neg' : 'pos';
 
     const accCells = accounts.map(a => {
@@ -449,6 +589,12 @@ function render4pct(rows) {
 
   document.getElementById('fireTarget').textContent = fmt(fireTarget);
   document.getElementById('fireNet').textContent = extPenMo > 0 ? fmt(fireNet) : '—';
+  const fireNeedEl = document.querySelector('#fireBox .fire-row:first-child .fire-label');
+  if (fireNeedEl) fireNeedEl.textContent = t('fire.need');
+  const fireNeedNetEl = document.querySelector('#fireBox .fire-row:nth-child(2) .fire-label');
+  if (fireNeedNetEl) fireNeedNetEl.textContent = t('fire.needNet');
+  const fireProgressEl = document.querySelector('.fire-progress-label span:first-child');
+  if (fireProgressEl) fireProgressEl.textContent = t('fire.progress');
 
   const iNow = pN('investAsset');
   const accNow = accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
@@ -467,8 +613,8 @@ function render4pct(rows) {
   document.getElementById('firePct').textContent = pct.toFixed(1) + '%';
   document.getElementById('fireFill').style.width = Math.min(pct, 100).toFixed(1) + '%';
   document.getElementById('fireFill').style.background = pct >= 100 ? 'linear-gradient(90deg,var(--teal),var(--green))' : pct >= 60 ? 'linear-gradient(90deg,var(--teal),var(--gold))' : 'linear-gradient(90deg,var(--red),var(--gold))';
-  document.getElementById('fireNow').textContent = `현재 ${fmt(nowTotal)} (${pct.toFixed(0)}%)`;
-  document.getElementById('fireRetireEst').textContent = `은퇴 시 ${fmt(retireTotal)} (${retirePct.toFixed(0)}%)`;
+  document.getElementById('fireNow').textContent = t('fire.now') + ' ' + fmt(nowTotal) + ' (' + pct.toFixed(0) + '%)';
+  document.getElementById('fireRetireEst').textContent = t('fire.atRetire') + ' ' + fmt(retireTotal) + ' (' + retirePct.toFixed(0) + '%)';
 }
 
 // ═══════════════════════════════════════════════════
@@ -488,7 +634,7 @@ function renderAll() {
 // ═══════════════════════════════════════════════════
 function switchSc(k) {
   currentSc = k;
-  ['base', 'opt', 'pes'].forEach(t => document.getElementById('tab-' + t)?.classList.toggle('active', t === k));
+  ['base', 'opt', 'pes'].forEach(sc => document.getElementById('tab-' + sc)?.classList.toggle('active', sc === k));
   renderAll();
 }
 
@@ -556,83 +702,85 @@ function renderAccountList() {
     const card = document.createElement('div');
     card.className = 'acc-card';
     card.id = 'ac-' + a.id;
-    const balFmt = a.balance ? fmt(parseFloat(a.balance)) : '$0';
+    const typeLabel = getAccTypeLabel(a.type);
+    const typeDesc = getAccTypeDesc(a.type);
+    const balFmt = a.balance ? fmt(parseFloat(a.balance)) : (CURRENCY === 'KRW' ? '₩0' : '$0');
     card.innerHTML = `
       <div class="acc-head" onclick="toggleAcc(${a.id})">
-        <span class="acc-badge ${t.badge}">${t.label}</span>
-        <span class="acc-name">${a.name || t.label}</span>
+        <span class="acc-badge ${t.badge}">${typeLabel}</span>
+        <span class="acc-name">${a.name || typeLabel}</span>
         <span class="acc-bal">${balFmt}</span>
         <span class="acc-toggle">▼</span>
       </div>
       <div class="acc-body">
-        <div class="field"><label>계좌 종류</label>
+        <div class="field"><label>${t('acc.type')}</label>
           <select class="acc-sel" onchange="updateAccount(${a.id},'type',this.value)">
-            ${Object.entries(ACC_TYPES).map(([k, v]) => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${v.label}</option>`).join('')}
+            ${Object.keys(ACC_TYPES).map(k => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${getAccTypeLabel(k)}</option>`).join('')}
           </select>
         </div>
-        <div style="font-size:10px;color:var(--text3);padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:5px;margin-bottom:8px;">${t.desc}</div>
-        <div class="field"><label>계좌 별명</label>
-          <input class="acc-inp" type="text" placeholder="예: 미국 Roth IRA, 한국 연금저축" value="${a.name}" oninput="updateAccount(${a.id},'name',this.value)">
+        <div style="font-size:10px;color:var(--text3);padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:5px;margin-bottom:8px;">${typeDesc}</div>
+        <div class="field"><label>${t('acc.nickname')}</label>
+          <input class="acc-inp" type="text" placeholder="${t('acc.placeholderName')}" value="${a.name}" oninput="updateAccount(${a.id},'name',this.value)">
         </div>
         <div class="row2">
-          <div class="field"><label>현재 잔액</label>
-            <div class="iw"><input class="acc-num" type="text" value="${a.balance}" placeholder="0" oninput="updateAccount(${a.id},'balance',this.value)"><span class="sfx">USD</span></div>
+          <div class="field"><label>${t('acc.balance')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${a.balance}" placeholder="0" oninput="updateAccount(${a.id},'balance',this.value)"><span class="sfx">${t('currencySfx')}</span></div>
           </div>
-          <div class="field"><label>예상 수익률</label>
+          <div class="field"><label>${t('acc.rate')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.rate}" placeholder="7" oninput="updateAccount(${a.id},'rate',this.value)"><span class="sfx">%</span></div>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;font-weight:600;">납입 (둘 중 하나만 입력)</div>
+        <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;font-weight:600;">${t('acc.contribNote')}</div>
         <div class="row2">
-          <div class="field"><label>본인 납입 (연 고정액)</label>
-            <div class="iw"><input class="acc-num" type="text" value="${a.contribSelf}" placeholder="0" oninput="updateAccount(${a.id},'contribSelf',this.value)"><span class="sfx">USD</span></div>
+          <div class="field"><label>${t('acc.contribSelf')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${a.contribSelf}" placeholder="0" oninput="updateAccount(${a.id},'contribSelf',this.value)"><span class="sfx">${t('currencySfx')}</span></div>
           </div>
-          <div class="field"><label>본인 납입 (수입의 %)</label>
+          <div class="field"><label>${t('acc.contribSelfPct')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.contribSelfRate}" placeholder="0" oninput="updateAccount(${a.id},'contribSelfRate',this.value)"><span class="sfx">%</span></div>
           </div>
         </div>
-        <div class="field"><label>회사 납입 방식</label>
+        <div class="field"><label>${t('acc.empMode')}</label>
           <select class="acc-sel" onchange="updateAccount(${a.id},'employerMatchMode',this.value)">
-            <option value="fixed" ${empMode === 'fixed' ? 'selected' : ''}>연 고정액</option>
-            <option value="percent" ${empMode === 'percent' ? 'selected' : ''}>연봉의 %</option>
-            <option value="match" ${empMode === 'match' ? 'selected' : ''}>매칭 (X% match up to Y%)</option>
+            <option value="fixed" ${empMode === 'fixed' ? 'selected' : ''}>${t('acc.empFixed')}</option>
+            <option value="percent" ${empMode === 'percent' ? 'selected' : ''}>${t('acc.empPct')}</option>
+            <option value="match" ${empMode === 'match' ? 'selected' : ''}>${t('acc.empMatch')}</option>
           </select>
         </div>
         <div class="row2 employer-opt employer-fixed" style="display:${empMode === 'fixed' ? 'grid' : 'none'}">
-          <div class="field"><label>회사 납입 (연 고정액)</label>
-            <div class="iw"><input class="acc-num" type="text" value="${a.contribEmployer}" placeholder="0" oninput="updateAccount(${a.id},'contribEmployer',this.value)"><span class="sfx">USD</span></div>
+          <div class="field"><label>${t('acc.empAmount')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${a.contribEmployer}" placeholder="0" oninput="updateAccount(${a.id},'contribEmployer',this.value)"><span class="sfx">${t('currencySfx')}</span></div>
           </div>
           <div class="field"></div>
         </div>
         <div class="row2 employer-opt employer-percent" style="display:${empMode === 'percent' ? 'grid' : 'none'}">
-          <div class="field"><label>회사 납입 (연봉의 %)</label>
+          <div class="field"><label>${t('acc.empPctLabel')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.contribEmployerRate}" placeholder="0" oninput="updateAccount(${a.id},'contribEmployerRate',this.value)"><span class="sfx">%</span></div>
           </div>
           <div class="field"></div>
         </div>
         <div class="row2 employer-opt employer-match" style="display:${empMode === 'match' ? 'grid' : 'none'}">
-          <div class="field"><label>매칭률 (회사가 내 납입의 몇 %)</label>
+          <div class="field"><label>${t('acc.matchRate')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.matchRate ?? '50'}" placeholder="50" oninput="updateAccount(${a.id},'matchRate',this.value)"><span class="sfx">%</span></div>
           </div>
-          <div class="field"><label>한도 (연봉의 몇 %까지만 매칭)</label>
+          <div class="field"><label>${t('acc.matchCap')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.matchCapPercent ?? '8'}" placeholder="8" oninput="updateAccount(${a.id},'matchCapPercent',this.value)"><span class="sfx">%</span></div>
           </div>
         </div>
         <div class="row2">
-          <div class="field"><label>납입 종료 나이</label>
-            <div class="iw"><input class="acc-num" type="number" value="${a.contribEndAge ?? ''}" placeholder="비우면 은퇴 나이" min="1" max="99" oninput="updateAccount(${a.id},'contribEndAge',this.value)"><span class="sfx">세</span></div>
+          <div class="field"><label>${t('acc.contribEnd')}</label>
+            <div class="iw"><input class="acc-num" type="number" value="${a.contribEndAge ?? ''}" placeholder="${t('acc.contribEndPlaceholder')}" min="1" max="99" oninput="updateAccount(${a.id},'contribEndAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
-          <div class="field"><label>인출 시작 나이</label>
-            <div class="iw"><input class="acc-num" type="number" value="${a.retireDrawAge}" placeholder="60" oninput="updateAccount(${a.id},'retireDrawAge',this.value)"><span class="sfx">세</span></div>
+          <div class="field"><label>${t('acc.drawAge')}</label>
+            <div class="iw"><input class="acc-num" type="number" value="${a.retireDrawAge}" placeholder="60" oninput="updateAccount(${a.id},'retireDrawAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
         </div>
         <div class="row2">
-          <div class="field"><label>인출 시 세율</label>
+          <div class="field"><label>${t('acc.withdrawTax')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.withdrawTaxRate}" placeholder="0" oninput="updateAccount(${a.id},'withdrawTaxRate',this.value)"><span class="sfx">%</span></div>
           </div>
           <div class="field"></div>
         </div>
-        <div class="acc-foot"><button class="btn-del" onclick="removeAccount(${a.id})">🗑 삭제</button></div>
+        <div class="acc-foot"><button class="btn-del" onclick="removeAccount(${a.id})">${t('acc.delete')}</button></div>
       </div>`;
     if (openIds.has(card.id)) card.classList.add('open');
     list.appendChild(card);
@@ -675,10 +823,10 @@ function updateEvent(id, field, value) {
   }
   if (field === 'name') {
     const lbl = document.querySelector('#ev-' + id + ' .ev-lbl');
-    if (lbl) lbl.textContent = value || '이름 없음';
+    if (lbl) lbl.textContent = value || t('ev.noName');
   } else if (field === 'age') {
     const tag = document.querySelector('#ev-' + id + ' .ev-age-tag');
-    if (tag) tag.textContent = value + '세';
+    if (tag) tag.textContent = value + t('ageSfx');
   } else if (field === 'type') {
     renderEventList();
   }
@@ -699,47 +847,48 @@ function renderEventList() {
   if (nm) nm.style.display = 'none';
 
   const BADGES = {
-    income: ['ebadge-income', '💹 수입변경'],
-    expense: ['ebadge-expense', '💸 지출변경'],
-    'lumpsum-out': ['ebadge-lumpsum-out', '🏠 목돈지출'],
-    'lumpsum-in': ['ebadge-lumpsum-in', '🎁 목돈유입'],
+    income: ['ebadge-income', 'evBadge.income'],
+    expense: ['ebadge-expense', 'evBadge.expense'],
+    'lumpsum-out': ['ebadge-lumpsum-out', 'evBadge.lumpsum-out'],
+    'lumpsum-in': ['ebadge-lumpsum-in', 'evBadge.lumpsum-in'],
   };
   const sorted = [...events].sort((a, b) => parseInt(a.age) - parseInt(b.age));
   for (const ev of sorted) {
-    const [bc, bl] = BADGES[ev.type] || ['ebadge-income', '이벤트'];
+    const [bc, blKey] = BADGES[ev.type] || ['ebadge-income', 'evBadge.default'];
+    const bl = t(blKey);
     const isLump = ev.type.startsWith('lumpsum');
-    const sfx = isLump ? 'USD' : 'USD/yr';
+    const sfx = isLump ? t('currencySfx') : t('currencySfxYr');
     const card = document.createElement('div');
     card.className = 'ev-card';
     card.id = 'ev-' + ev.id;
     card.innerHTML = `
       <div class="ev-head" onclick="toggleEv(${ev.id})">
         <span class="ev-badge ${bc}">${bl}</span>
-        <span class="ev-lbl">${ev.name || '이름 없음'}</span>
-        <span class="ev-age-tag">${ev.age}세</span>
+        <span class="ev-lbl">${ev.name || t('ev.noName')}</span>
+        <span class="ev-age-tag">${ev.age}${t('ageSfx')}</span>
         <span class="ev-tog">▼</span>
       </div>
       <div class="ev-body">
-        <div class="field"><label>이벤트 종류</label>
+        <div class="field"><label>${t('ev.kind')}</label>
           <select class="acc-sel" onchange="updateEvent(${ev.id},'type',this.value)">
-            <option value="income" ${ev.type === 'income' ? 'selected' : ''}>💹 연 수입 변경</option>
-            <option value="expense" ${ev.type === 'expense' ? 'selected' : ''}>💸 연 지출 변경</option>
-            <option value="lumpsum-out" ${ev.type === 'lumpsum-out' ? 'selected' : ''}>🏠 목돈 지출</option>
-            <option value="lumpsum-in" ${ev.type === 'lumpsum-in' ? 'selected' : ''}>🎁 목돈 유입</option>
+            <option value="income" ${ev.type === 'income' ? 'selected' : ''}>${t('ev.income')}</option>
+            <option value="expense" ${ev.type === 'expense' ? 'selected' : ''}>${t('ev.expense')}</option>
+            <option value="lumpsum-out" ${ev.type === 'lumpsum-out' ? 'selected' : ''}>${t('ev.lumpOut')}</option>
+            <option value="lumpsum-in" ${ev.type === 'lumpsum-in' ? 'selected' : ''}>${t('ev.lumpIn')}</option>
           </select>
         </div>
-        <div class="field"><label>이름</label>
-          <input class="acc-inp" type="text" placeholder="예: 캐나다 이민, 집 구매..." value="${ev.name}" oninput="updateEvent(${ev.id},'name',this.value)">
+        <div class="field"><label>${t('ev.name')}</label>
+          <input class="acc-inp" type="text" placeholder="${t('ev.placeholderName')}" value="${ev.name}" oninput="updateEvent(${ev.id},'name',this.value)">
         </div>
         <div class="row2">
-          <div class="field"><label>발생 나이</label>
-            <div class="iw"><input class="acc-num" type="number" value="${ev.age}" min="1" max="99" onchange="updateEvent(${ev.id},'age',parseInt(this.value))"><span class="sfx">세</span></div>
+          <div class="field"><label>${t('ev.age')}</label>
+            <div class="iw"><input class="acc-num" type="number" value="${ev.age}" min="1" max="99" onchange="updateEvent(${ev.id},'age',parseInt(this.value))"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
-          <div class="field"><label>금액</label>
-            <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="예: 150000 또는 150k" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
+          <div class="field"><label>${t('ev.amount')}</label>
+            <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="e.g. 150000 or 150k" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
           </div>
         </div>
-        <div class="acc-foot"><button class="btn-del" onclick="removeEvent(${ev.id})">🗑 삭제</button></div>
+        <div class="acc-foot"><button class="btn-del" onclick="removeEvent(${ev.id})">${t('ev.delete')}</button></div>
       </div>`;
     if (openIds.has(card.id)) card.classList.add('open');
     list.appendChild(card);
@@ -761,6 +910,7 @@ function mTab(t) {
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
+applyLocale();
 document.querySelectorAll('input[id]').forEach(inp => {
   inp.addEventListener('input', renderAll);
   inp.addEventListener('change', renderAll);
