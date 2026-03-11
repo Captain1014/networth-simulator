@@ -45,7 +45,7 @@ const T = {
     summary: { nw: '순자산 (Net Worth)', subNW: '자산 {assets} − 부채 {debt}', subNWPlaceholder: '자산 − 부채', debt: '총 부채', noDebt: '부채 없음 ✓', debtLabel: '부채', mortgage: '모기지', studentLoan: '학자금', car: '차량', other: '기타', retire: '은퇴 시 예상 (세후)', subRetire: '투자 {invest} · 계좌 {acc}', deplete: '자산 소진 예상', depleteSub: '전체 자산 소진 예상', noDeplete: '100세+', noDepleteSub: '기간 내 소진 없음 ✓', save: '연간 순저축', subSave: '수입 − 지출 − 부채상환', ageSuffix: '세' },
     chart: { view: '보기', total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)', modeSingle: '단일 궤적', modeMC: '몬테카를로', volatility: '변동성 (표준편차 %)', mcRun: '몬테카를로 실행', mcRunning: '실행 중…', mcSuccess: '성공률 (100세까지 소진 없음)', mcP10: '10% 하위', mcP50: '중앙값 (50%)', mcP90: '90% 상위',
     mcHelp: '차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).' },
-    table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
+    table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', investColTitle: '비연금만 해당. 소진 = 이 항목 0 이하. 총자산에는 연금 포함.', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
     acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
     ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
     accType: { roth_label: 'Roth IRA', roth_desc: '세후 납입 → 인출 비과세', traditional_label: 'Traditional IRA / 401k', traditional_desc: '세전 납입 → 인출 시 과세', pension_kr_label: '한국 연금저축펀드', pension_kr_desc: '세전 납입 → 연금소득세 과세', taxable_label: '일반 과세 계좌', taxable_desc: '수익에 대해 매년 과세', account: '계좌' },
@@ -71,7 +71,7 @@ const T = {
     summary: { nw: 'Net Worth', subNW: 'Assets {assets} − Debt {debt}', subNWPlaceholder: 'Assets − Debt', debt: 'Total debt', noDebt: 'No debt ✓', debtLabel: 'Debt', mortgage: 'Mortgage', studentLoan: 'Student', car: 'Car', other: 'Other', retire: 'At retirement (after tax)', subRetire: 'Invest {invest} · Accounts {acc}', deplete: 'Asset depletion', depleteSub: 'Estimated depletion', noDeplete: '100+', noDepleteSub: 'No depletion ✓', save: 'Annual net savings', subSave: 'Income − Expense − Debt repay', ageSuffix: ' yrs' },
     chart: { view: 'View', total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)', modeSingle: 'Single path', modeMC: 'Monte Carlo', volatility: 'Volatility (std dev %)', mcRun: 'Run Monte Carlo', mcRunning: 'Running…', mcSuccess: 'Success rate (no depletion by 100)', mcP10: '10th %ile', mcP50: 'Median (50%)', mcP90: '90th %ile',
     mcHelp: 'Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.' },
-    table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
+    table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', investColTitle: 'Non-pension only. Depleted = this bucket ≤ 0. Total includes retirement accounts.', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
     acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
     ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', income: '💹 Income change', expense: '💸 Expense change', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
     accType: { roth_label: 'Roth IRA', roth_desc: 'After-tax → tax-free withdrawal', traditional_label: 'Traditional IRA / 401k', traditional_desc: 'Pre-tax → taxed on withdrawal', pension_kr_label: 'Korea pension fund', pension_kr_desc: 'Pre-tax → pension tax on withdrawal', taxable_label: 'Taxable account', taxable_desc: 'Taxed annually on gains', account: 'Account' },
@@ -454,39 +454,46 @@ function simulate(sk = 'base', returnSequence = null) {
 // ═══════════════════════════════════════════════════
 // MONTE CARLO
 // ═══════════════════════════════════════════════════
-/** [0, 1) using crypto.getRandomValues so behavior is consistent across envs (avoids 100% success on some deploys where Math.random is stubbed). */
-function randomUnit() {
+/** Mulberry32 PRNG: returns [0, 1). Seeded once per run so we never rely on Math.random (fixes 100% on some deploys). */
+function createMcRng() {
+  let s;
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
     const buf = new Uint32Array(1);
     crypto.getRandomValues(buf);
-    return buf[0] / (0xffffffff + 1);
+    s = buf[0];
+  } else {
+    s = ((typeof performance !== 'undefined' && performance.now) ? (Date.now() * 1e3 + performance.now()) : Date.now()) >>> 0;
   }
-  return Math.random();
+  if (!s) s = 1;
+  return function () {
+    s = Math.imul(s ^ (s >>> 15), s | 1);
+    return (s >>> 0) / 4294967296;
+  };
 }
 
-function randomNormal() {
-  let u1 = randomUnit(), u2 = randomUnit();
-  while (u1 <= 0) u1 = randomUnit();
+function randomNormal(rng) {
+  var u1 = rng(), u2 = rng();
+  while (u1 <= 1e-10) u1 = rng();
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
-/** Generate one lognormal annual return so E[1+r]=1+expectedReturn, volatility = sigma (e.g. 0.15). */
-function lognormalReturn(expectedReturn, sigma) {
-  const mu = Math.log(1 + expectedReturn) - (sigma * sigma) / 2;
-  const log1r = mu + sigma * randomNormal();
+function lognormalReturn(expectedReturn, sigma, rng) {
+  var mu = Math.log(1 + expectedReturn) - (sigma * sigma) / 2;
+  var log1r = mu + sigma * randomNormal(rng);
   return Math.exp(log1r) - 1;
 }
 
 function runMonteCarlo() {
-  const startAge = pN('currentAge');
-  const nYears = 100 - startAge + 1;
-  const expectedReturn = pR('returnRate');
-  const vol = (parseFloat(document.getElementById('returnVolatility')?.value || '15') || 15) / 100;
+  var startAge = pN('currentAge');
+  var nYears = 100 - startAge + 1;
+  var expectedReturn = pR('returnRate');
+  var vol = (parseFloat(document.getElementById('returnVolatility')?.value || '15') || 15) / 100;
 
-  const paths = [];
-  for (let i = 0; i < MC_RUNS; i++) {
-    const seq = [];
-    for (let y = 0; y < nYears; y++) seq.push(lognormalReturn(expectedReturn, vol));
+  var rng = createMcRng();
+  var paths = [];
+  for (var i = 0; i < MC_RUNS; i++) {
+    var seq = [];
+    for (var y = 0; y < nYears; y++) seq.push(lognormalReturn(expectedReturn, vol, rng));
     paths.push(simulate('base', seq));
   }
 
@@ -672,10 +679,11 @@ function renderTable(rows) {
 
   const accCols = accounts.map(a => a.name || getAccTypeLabel(a.type));
   const ageSfx = t('summary.ageSuffix');
+  const investColTitle = t('table.investColTitle') || '';
   head.innerHTML = `<tr>
     <th>${t('table.age')}</th><th>${t('table.event')}</th>
     <th>${t('table.income')}</th><th>${t('table.expense')}</th><th>${t('table.savings')}</th>
-    <th>${t('table.investCol')}</th>
+    <th title="${investColTitle.replace(/"/g, '&quot;')}">${t('table.investCol')}</th>
     ${accCols.map(n => `<th>${n}</th>`).join('')}
     <th>${t('table.total')}</th>
   </tr>`;
