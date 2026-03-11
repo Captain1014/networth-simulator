@@ -129,6 +129,7 @@ const INPUT_IDS = [
 let chartMode = 'single'; // 'single' | 'montecarlo'
 let mcResult = null;     // { successRate, p10, p50, p90, labels } or null
 const MC_RUNS = 1000;
+const MC_VERSION = 5;     // bump when MC logic changes (to confirm deploy has latest script)
 let saveTimeout = null;
 
 // ═══════════════════════════════════════════════════
@@ -519,10 +520,17 @@ function runMonteCarlo() {
   }
   var depletedCount = MC_RUNS - successCount;
   var ageSfx = t('summary.ageSuffix');
+  var mid = Math.floor(paths[0].length / 2);
+  var sampleVal = paths[0][mid].totalLiquid;
+  var pathsIdentical = true;
+  for (var qi = 1; qi < paths.length; qi++) {
+    if (paths[qi][mid].totalLiquid !== sampleVal) { pathsIdentical = false; break; }
+  }
   mcResult = {
     successRate: successCount / MC_RUNS,
     successCount: successCount,
     depletedCount: depletedCount,
+    pathsIdentical: pathsIdentical,
     p10, p50, p90,
     labels: paths[0].map(function (r) { return r.age + ageSfx; }),
   };
@@ -825,7 +833,8 @@ function updateMcSuccessLabel() {
     var extra = (mcResult.depletedCount != null && mcResult.depletedCount > 0)
       ? ' (' + mcResult.depletedCount + ' depleted)'
       : '';
-    el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra;
+    if (mcResult.pathsIdentical) extra = ' (paths identical – refresh or clear cache)';
+    el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra + ' [v' + MC_VERSION + ']';
     el.classList.remove('hidden');
   } else {
     el.textContent = '';
