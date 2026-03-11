@@ -129,7 +129,6 @@ const INPUT_IDS = [
 let chartMode = 'single'; // 'single' | 'montecarlo'
 let mcResult = null;     // { successRate, p10, p50, p90, labels } or null
 const MC_RUNS = 1000;
-const MC_VERSION = 5;     // bump when MC logic changes (to confirm deploy has latest script)
 let saveTimeout = null;
 
 // ═══════════════════════════════════════════════════
@@ -834,7 +833,7 @@ function updateMcSuccessLabel() {
       ? ' (' + mcResult.depletedCount + ' depleted)'
       : '';
     if (mcResult.pathsIdentical) extra = ' (paths identical – refresh or clear cache)';
-    el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra + ' [v' + MC_VERSION + ']';
+    el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra;
     el.classList.remove('hidden');
   } else {
     el.textContent = '';
