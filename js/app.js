@@ -506,15 +506,25 @@ function runMonteCarlo() {
     p50.push(Math.round(vals[Math.floor(MC_RUNS * 0.5)]));
     p90.push(Math.round(vals[Math.floor(MC_RUNS * 0.9)]));
   }
-  for (const rows of paths) {
-    const minLiq = Math.min(...rows.map(r => r.totalLiquid));
-    if (minLiq > 0) successCount++;
+  // Use a small threshold so floating-point "dust" (e.g. 1e-10) counts as depleted
+  var depletionThreshold = 1;
+  for (var pi = 0; pi < paths.length; pi++) {
+    var pathRows = paths[pi];
+    var minLiq = pathRows[0].totalLiquid;
+    for (var ri = 1; ri < pathRows.length; ri++) {
+      var tl = pathRows[ri].totalLiquid;
+      if (tl < minLiq) minLiq = tl;
+    }
+    if (minLiq >= depletionThreshold) successCount++;
   }
-  const ageSfx = t('summary.ageSuffix');
+  var depletedCount = MC_RUNS - successCount;
+  var ageSfx = t('summary.ageSuffix');
   mcResult = {
     successRate: successCount / MC_RUNS,
+    successCount: successCount,
+    depletedCount: depletedCount,
     p10, p50, p90,
-    labels: paths[0].map(r => r.age + ageSfx),
+    labels: paths[0].map(function (r) { return r.age + ageSfx; }),
   };
   return mcResult;
 }
@@ -808,10 +818,14 @@ function setChartMode(mode) {
 }
 
 function updateMcSuccessLabel() {
-  const el = document.getElementById('mcSuccessRate');
+  var el = document.getElementById('mcSuccessRate');
   if (!el) return;
   if (chartMode === 'montecarlo' && mcResult != null) {
-    el.textContent = t('chart.mcSuccess') + ': ' + (mcResult.successRate * 100).toFixed(1) + '%';
+    var pct = (mcResult.successRate * 100).toFixed(1);
+    var extra = (mcResult.depletedCount != null && mcResult.depletedCount > 0)
+      ? ' (' + mcResult.depletedCount + ' depleted)'
+      : '';
+    el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra;
     el.classList.remove('hidden');
   } else {
     el.textContent = '';
