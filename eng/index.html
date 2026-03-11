@@ -176,10 +176,22 @@
         <div class="sub" data-i18n="summary.subSave">수입 − 지출 − 부채상환</div>
       </div>
     </div>
+    <div class="chart-mode-bar">
+      <span class="sc-lbl" data-i18n="chart.view">View</span>
+      <button type="button" class="sc-btn active" id="chartModeSingle" onclick="setChartMode('single')" data-i18n="chart.modeSingle">Single path</button>
+      <button type="button" class="sc-btn" id="chartModeMC" onclick="setChartMode('montecarlo')" data-i18n="chart.modeMC">Monte Carlo</button>
+    </div>
+    <div id="mc-controls" class="mc-controls" style="display:none">
+      <label for="returnVolatility" data-i18n="chart.volatility">Volatility (std dev %)</label>
+      <input type="text" id="returnVolatility" value="15" placeholder="15" style="width:4em;margin:0 8px"><span>%</span>
+      <button type="button" class="btn-mc-run" id="btnRunMC" onclick="runMonteCarloUI()" data-i18n="chart.mcRun">Run Monte Carlo</button>
+      <span id="mcSuccessRate" class="mc-success-rate" aria-live="polite"></span>
+      <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="chart.mcHelp">Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.</span></span>
+    </div>
     <div class="chart-wrap">
       <canvas id="mainChart"></canvas>
     </div>
-    <div class="sc-bar">
+    <div class="sc-bar" id="scenarioBar">
       <span class="sc-lbl" id="sc-lbl" data-i18n="chart.scenario">시나리오</span>
       <button class="sc-btn active" id="tab-base" onclick="switchSc('base')" data-i18n="chart.base">기본</button>
       <button class="sc-btn" id="tab-opt" onclick="switchSc('opt')" data-i18n="chart.opt">낙관 (+2%)</button>

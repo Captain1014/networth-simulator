@@ -32,7 +32,7 @@ const T = {
     title: '자산 시뮬레이터', subtitle: '다중 계좌 · 세율 반영 · 인생 이벤트 · 장기 자산 흐름',
     section: { basic: '기본 정보', invest: '투자 / 저축 자산', real: '실물 자산', debt: '부채', income: '연간 수입 & 지출', fire: '4% 법칙 — 은퇴 목표' },
     label: {
-      currentAge: '현재 나이', retireAge: '은퇴 목표 나이', investAsset: '투자 · 저축 (비연금)', returnRate: '투자 수익률', inflation: '인플레이션',
+      currentAge: '현재 나이', retireAge: '은퇴 목표 나이', investAsset: '투자 · 저축 (비연금)', returnRate: '투자 수익률', returnVolatility: '변동성 (표준편차 %)', inflation: '인플레이션',
       realEstate: '부동산 (시장가)', vehicle: '차량', otherAsset: '기타 실물',
       mortgage: '모기지 잔액', mortgageRate: '모기지 이자율', studentLoan: '학자금 대출', studentLoanRate: '학자금 이자율', carLoan: '자동차 할부', otherDebt: '기타 부채',
       annualIncome: '연 수입 (세후)', wageGrowth: '연봉 상승률', annualExpense: '연 지출',
@@ -43,7 +43,8 @@ const T = {
     accounts: { title: '연금 · 투자 계좌', add: '+ 계좌 추가', noAccs: '계좌가 없습니다.<br>Roth IRA, 연금저축펀드 등을 추가하세요.' },
     events: { title: '인생 이벤트', add: '+ 이벤트 추가', noEvs: '이벤트가 없습니다.' },
     summary: { nw: '순자산 (Net Worth)', subNW: '자산 {assets} − 부채 {debt}', subNWPlaceholder: '자산 − 부채', debt: '총 부채', noDebt: '부채 없음 ✓', debtLabel: '부채', mortgage: '모기지', studentLoan: '학자금', car: '차량', other: '기타', retire: '은퇴 시 예상 (세후)', subRetire: '투자 {invest} · 계좌 {acc}', deplete: '자산 소진 예상', depleteSub: '전체 자산 소진 예상', noDeplete: '100세+', noDepleteSub: '기간 내 소진 없음 ✓', save: '연간 순저축', subSave: '수입 − 지출 − 부채상환', ageSuffix: '세' },
-    chart: { total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)' },
+    chart: { view: '보기', total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)', modeSingle: '단일 궤적', modeMC: '몬테카를로', volatility: '변동성 (표준편차 %)', mcRun: '몬테카를로 실행', mcRunning: '실행 중…', mcSuccess: '성공률 (100세까지 소진 없음)', mcP10: '10% 하위', mcP50: '중앙값 (50%)', mcP90: '90% 상위',
+    mcHelp: '차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).' },
     table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
     acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
     ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
@@ -57,7 +58,7 @@ const T = {
     title: 'Net Worth Simulator', subtitle: 'Multi-account · Tax-aware · Life events · Long-term flow',
     section: { basic: 'Basic', invest: 'Investment / Savings', real: 'Real Assets', debt: 'Debt', income: 'Income & Expense', fire: '4% Rule — Retirement' },
     label: {
-      currentAge: 'Current age', retireAge: 'Retirement age', investAsset: 'Investment · Savings (non-pension)', returnRate: 'Return rate', inflation: 'Inflation',
+      currentAge: 'Current age', retireAge: 'Retirement age', investAsset: 'Investment · Savings (non-pension)', returnRate: 'Return rate', returnVolatility: 'Volatility (std dev %)', inflation: 'Inflation',
       realEstate: 'Real estate', vehicle: 'Vehicle', otherAsset: 'Other real',
       mortgage: 'Mortgage balance', mortgageRate: 'Mortgage rate', studentLoan: 'Student loan', studentLoanRate: 'Student loan rate', carLoan: 'Car loan', otherDebt: 'Other debt',
       annualIncome: 'Annual income (after tax)', wageGrowth: 'Wage growth rate', annualExpense: 'Annual expense',
@@ -68,7 +69,8 @@ const T = {
     accounts: { title: 'Pension · Investment accounts', add: '+ Add account', noAccs: 'No accounts.<br>Add Roth IRA, 401k, etc.' },
     events: { title: 'Life events', add: '+ Add event', noEvs: 'No events.' },
     summary: { nw: 'Net Worth', subNW: 'Assets {assets} − Debt {debt}', subNWPlaceholder: 'Assets − Debt', debt: 'Total debt', noDebt: 'No debt ✓', debtLabel: 'Debt', mortgage: 'Mortgage', studentLoan: 'Student', car: 'Car', other: 'Other', retire: 'At retirement (after tax)', subRetire: 'Invest {invest} · Accounts {acc}', deplete: 'Asset depletion', depleteSub: 'Estimated depletion', noDeplete: '100+', noDepleteSub: 'No depletion ✓', save: 'Annual net savings', subSave: 'Income − Expense − Debt repay', ageSuffix: ' yrs' },
-    chart: { total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)' },
+    chart: { view: 'View', total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)', modeSingle: 'Single path', modeMC: 'Monte Carlo', volatility: 'Volatility (std dev %)', mcRun: 'Run Monte Carlo', mcRunning: 'Running…', mcSuccess: 'Success rate (no depletion by 100)', mcP10: '10th %ile', mcP50: 'Median (50%)', mcP90: '90th %ile',
+    mcHelp: 'Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.' },
     table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
     acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
     ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', income: '💹 Income change', expense: '💸 Expense change', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
@@ -118,12 +120,15 @@ function getAccTypeDesc(type) {
 
 const STORAGE_KEY = 'networth-simulator-state';
 const INPUT_IDS = [
-  'currentAge', 'retireAge', 'investAsset', 'returnRate', 'inflation', 'wageGrowthRate',
+  'currentAge', 'retireAge', 'investAsset', 'returnRate', 'returnVolatility', 'inflation', 'wageGrowthRate',
   'realEstate', 'vehicle', 'otherAsset',
   'mortgage', 'mortgageRate', 'studentLoan', 'studentLoanRate', 'carLoan', 'otherDebt',
   'annualIncome', 'annualExpense',
   'targetMonthly', 'withdrawRate', 'externalPension',
 ];
+let chartMode = 'single'; // 'single' | 'montecarlo'
+let mcResult = null;     // { successRate, p10, p50, p90, labels } or null
+const MC_RUNS = 1000;
 let saveTimeout = null;
 
 // ═══════════════════════════════════════════════════
@@ -295,14 +300,19 @@ function fmt(n) {
 // ═══════════════════════════════════════════════════
 // SIMULATE
 // ═══════════════════════════════════════════════════
-function simulate(sk = 'base') {
+/**
+ * Run one simulation path.
+ * @param {string} sk - Scenario key ('base'|'opt'|'pes')
+ * @param {number[]} [returnSequence] - Optional per-year return rates for investment (length = 101 - startAge). If omitted, constant rr is used.
+ */
+function simulate(sk = 'base', returnSequence = null) {
   const mod = SC[sk];
   const startAge = pN('currentAge');
   const retireAge = pN('retireAge');
   let invest = pN('investAsset');
   let income = pN('annualIncome');
   let expense = pN('annualExpense');
-  const rr = pR('returnRate') + mod.r / 100;
+  const rrBase = pR('returnRate') + mod.r / 100;
   const inf = pR('inflation');
   const wageGrowth = pR('wageGrowthRate');
 
@@ -374,6 +384,7 @@ function simulate(sk = 'base') {
     }
 
     const savings = isRetired ? 0 : (income - expense - totalDebt - totalAccContrib);
+    const rr = returnSequence ? returnSequence[age - startAge] : rrBase;
     invest = invest * (1 + rr) + savings + lumpIn - lumpOut;
     if (isRetired && expense > 0) {
       let totalAT = 0;
@@ -438,6 +449,56 @@ function simulate(sk = 'base') {
     });
   }
   return rows;
+}
+
+// ═══════════════════════════════════════════════════
+// MONTE CARLO
+// ═══════════════════════════════════════════════════
+function randomNormal() {
+  const u1 = Math.random(), u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+/** Generate one lognormal annual return so E[1+r]=1+expectedReturn, volatility = sigma (e.g. 0.15). */
+function lognormalReturn(expectedReturn, sigma) {
+  const mu = Math.log(1 + expectedReturn) - (sigma * sigma) / 2;
+  const log1r = mu + sigma * randomNormal();
+  return Math.exp(log1r) - 1;
+}
+
+function runMonteCarlo() {
+  const startAge = pN('currentAge');
+  const nYears = 100 - startAge + 1;
+  const expectedReturn = pR('returnRate');
+  const vol = (parseFloat(document.getElementById('returnVolatility')?.value || '15') || 15) / 100;
+
+  const paths = [];
+  for (let i = 0; i < MC_RUNS; i++) {
+    const seq = [];
+    for (let y = 0; y < nYears; y++) seq.push(lognormalReturn(expectedReturn, vol));
+    paths.push(simulate('base', seq));
+  }
+
+  const n = paths[0].length;
+  const p10 = [], p50 = [], p90 = [];
+  let successCount = 0;
+  for (let j = 0; j < n; j++) {
+    const vals = paths.map(rows => rows[j].totalLiquid).sort((a, b) => a - b);
+    p10.push(Math.round(vals[Math.floor(MC_RUNS * 0.1)]));
+    p50.push(Math.round(vals[Math.floor(MC_RUNS * 0.5)]));
+    p90.push(Math.round(vals[Math.floor(MC_RUNS * 0.9)]));
+  }
+  for (const rows of paths) {
+    const minLiq = Math.min(...rows.map(r => r.totalLiquid));
+    if (minLiq > 0) successCount++;
+  }
+  const ageSfx = t('summary.ageSuffix');
+  mcResult = {
+    successRate: successCount / MC_RUNS,
+    p10, p50, p90,
+    labels: paths[0].map(r => r.age + ageSfx),
+  };
+  return mcResult;
 }
 
 // ═══════════════════════════════════════════════════
@@ -506,6 +567,10 @@ function renderSummary(rows) {
 // CHART
 // ═══════════════════════════════════════════════════
 function renderChart(rows) {
+  if (chartMode === 'montecarlo' && mcResult) {
+    renderChartMC(mcResult);
+    return;
+  }
   const ageSfx = t('summary.ageSuffix');
   const labels = rows.map(r => r.age + ageSfx);
   const totalD = rows.map(r => Math.round(r.totalLiquid));
@@ -522,6 +587,43 @@ function renderChart(rows) {
         { label: t('chart.total'), data: totalD, borderColor: '#d4a853', backgroundColor: 'rgba(212,168,83,0.07)', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 },
         { label: t('chart.invest'), data: investD, borderColor: '#5b9bd5', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, borderDash: [4, 3], tension: 0.3 },
         { label: t('chart.acc'), data: accD, borderColor: '#5bbfb5', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#a0a0b8', font: { size: 10 }, boxWidth: 10, padding: 14 } },
+        tooltip: {
+          backgroundColor: '#1e1e27',
+          borderColor: '#2c2c3a',
+          borderWidth: 1,
+          titleColor: '#e8e6f0',
+          bodyColor: '#a0a0b8',
+          padding: 10,
+          callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` },
+        },
+      },
+      scales: {
+        x: { ticks: { color: '#606078', font: { size: 9 }, maxTicksLimit: 14 }, grid: { color: 'rgba(44,44,58,0.4)' } },
+        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
+      },
+    },
+  });
+}
+
+function renderChartMC(data) {
+  if (chartInst) chartInst.destroy();
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: t('chart.mcP90'), data: data.p90, borderColor: 'rgba(212,168,83,0.5)', backgroundColor: 'transparent', borderWidth: 1, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
+        { label: t('chart.mcP50'), data: data.p50, borderColor: '#d4a853', backgroundColor: 'rgba(212,168,83,0.12)', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 },
+        { label: t('chart.mcP10'), data: data.p10, borderColor: 'rgba(212,168,83,0.5)', backgroundColor: 'transparent', borderWidth: 1, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
       ],
     },
     options: {
@@ -672,6 +774,50 @@ function switchSc(k) {
   currentSc = k;
   ['base', 'opt', 'pes'].forEach(sc => document.getElementById('tab-' + sc)?.classList.toggle('active', sc === k));
   renderAll();
+}
+
+function setChartMode(mode) {
+  chartMode = mode;
+  document.getElementById('chartModeSingle')?.classList.toggle('active', mode === 'single');
+  document.getElementById('chartModeMC')?.classList.toggle('active', mode === 'montecarlo');
+  const mcEl = document.getElementById('mc-controls');
+  const scBar = document.getElementById('scenarioBar');
+  if (mcEl) mcEl.style.display = mode === 'montecarlo' ? 'flex' : 'none';
+  if (scBar) scBar.style.display = mode === 'single' ? 'flex' : 'none';
+  updateMcSuccessLabel();
+  renderAll();
+}
+
+function updateMcSuccessLabel() {
+  const el = document.getElementById('mcSuccessRate');
+  if (!el) return;
+  if (chartMode === 'montecarlo' && mcResult != null) {
+    el.textContent = t('chart.mcSuccess') + ': ' + (mcResult.successRate * 100).toFixed(1) + '%';
+    el.classList.remove('hidden');
+  } else {
+    el.textContent = '';
+  }
+}
+
+function runMonteCarloUI() {
+  const btn = document.getElementById('btnRunMC');
+  const origText = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = t('chart.mcRunning');
+  }
+  requestAnimationFrame(() => {
+    try {
+      runMonteCarlo();
+      updateMcSuccessLabel();
+      renderChart(mcResult);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = t('chart.mcRun');
+      }
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════

@@ -176,10 +176,22 @@
         <div class="sub" data-i18n="summary.subSave">수입 − 지출 − 부채상환</div>
       </div>
     </div>
+    <div class="chart-mode-bar">
+      <span class="sc-lbl" data-i18n="chart.view">보기</span>
+      <button type="button" class="sc-btn active" id="chartModeSingle" onclick="setChartMode('single')" data-i18n="chart.modeSingle">단일 궤적</button>
+      <button type="button" class="sc-btn" id="chartModeMC" onclick="setChartMode('montecarlo')" data-i18n="chart.modeMC">몬테카를로</button>
+    </div>
+    <div id="mc-controls" class="mc-controls" style="display:none">
+      <label for="returnVolatility" data-i18n="chart.volatility">변동성 (표준편차 %)</label>
+      <input type="text" id="returnVolatility" value="15" placeholder="15" style="width:4em;margin:0 8px"><span>%</span>
+      <button type="button" class="btn-mc-run" id="btnRunMC" onclick="runMonteCarloUI()" data-i18n="chart.mcRun">몬테카를로 실행</button>
+      <span id="mcSuccessRate" class="mc-success-rate" aria-live="polite"></span>
+      <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="chart.mcHelp">차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).</span></span>
+    </div>
     <div class="chart-wrap">
       <canvas id="mainChart"></canvas>
     </div>
-    <div class="sc-bar">
+    <div class="sc-bar" id="scenarioBar">
       <span class="sc-lbl" id="sc-lbl" data-i18n="chart.scenario">시나리오</span>
       <button class="sc-btn active" id="tab-base" onclick="switchSc('base')" data-i18n="chart.base">기본</button>
       <button class="sc-btn" id="tab-opt" onclick="switchSc('opt')" data-i18n="chart.opt">낙관 (+2%)</button>
