@@ -94,6 +94,21 @@ function pN(id) {
 }
 function pR(id) { return pN(id) / 100; }
 
+/** Parse amount string: supports "150k", "1.5M", "150,000", etc. */
+function parseMoney(str) {
+  if (str == null || str === '') return 0;
+  const s = String(str).replace(/,/g, '').trim();
+  const m = s.match(/^([-\d.]+)\s*([kKmMbB])?$/);
+  if (!m) return parseFloat(s) || 0;
+  let n = parseFloat(m[1]);
+  if (isNaN(n)) return 0;
+  const suffix = (m[2] || '').toLowerCase();
+  if (suffix === 'k') n *= 1e3;
+  else if (suffix === 'm') n *= 1e6;
+  else if (suffix === 'b') n *= 1e9;
+  return n;
+}
+
 function fmt(n) {
   if (n == null || isNaN(n)) return '—';
   const s = n < 0 ? '-$' : '$';
@@ -148,8 +163,8 @@ function simulate(sk = 'base') {
     let lumpIn = 0, lumpOut = 0;
     const evDescs = [];
     for (const ev of events) {
-      if (parseInt(ev.age) !== age) continue;
-      const val = parseFloat(ev.value) || 0;
+      if (parseInt(ev.age, 10) !== age) continue;
+      const val = Number(parseMoney(ev.value));
       if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, label: ev.name || '수입 변경' }); }
       else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, label: ev.name || '지출 변경' }); }
       else if (ev.type === 'lumpsum-out') { lumpOut += val; evDescs.push({ type: ev.type, label: ev.name || '목돈 지출' }); }
@@ -372,7 +387,7 @@ function renderTable(rows) {
   head.innerHTML = `<tr>
     <th>나이</th><th>이벤트</th>
     <th>연 수입</th><th>연 지출</th><th>순저축</th>
-    <th>투자자산</th>
+    <th>투자/저축자산</th>
     ${accCols.map(n => `<th>${n}</th>`).join('')}
     <th>총자산(세후)</th>
   </tr>`;
@@ -649,7 +664,15 @@ function removeEvent(id) {
 function updateEvent(id, field, value) {
   const ev = events.find(e => e.id === id);
   if (!ev) return;
-  ev[field] = value;
+  if (field === 'value') {
+    const num = parseMoney(value);
+    value = String(Math.round(num));
+    ev.value = value;
+    const inp = document.getElementById('ev-value-' + id);
+    if (inp && inp.value !== value) inp.value = value;
+  } else {
+    ev[field] = value;
+  }
   if (field === 'name') {
     const lbl = document.querySelector('#ev-' + id + ' .ev-lbl');
     if (lbl) lbl.textContent = value || '이름 없음';
@@ -713,7 +736,7 @@ function renderEventList() {
             <div class="iw"><input class="acc-num" type="number" value="${ev.age}" min="1" max="99" onchange="updateEvent(${ev.id},'age',parseInt(this.value))"><span class="sfx">세</span></div>
           </div>
           <div class="field"><label>금액</label>
-            <div class="iw"><input class="acc-num" type="text" value="${ev.value}" placeholder="0" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
+            <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="예: 150000 또는 150k" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
           </div>
         </div>
         <div class="acc-foot"><button class="btn-del" onclick="removeEvent(${ev.id})">🗑 삭제</button></div>
