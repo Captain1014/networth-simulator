@@ -454,8 +454,19 @@ function simulate(sk = 'base', returnSequence = null) {
 // ═══════════════════════════════════════════════════
 // MONTE CARLO
 // ═══════════════════════════════════════════════════
+/** [0, 1) using crypto.getRandomValues so behavior is consistent across envs (avoids 100% success on some deploys where Math.random is stubbed). */
+function randomUnit() {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return buf[0] / (0xffffffff + 1);
+  }
+  return Math.random();
+}
+
 function randomNormal() {
-  const u1 = Math.random(), u2 = Math.random();
+  let u1 = randomUnit(), u2 = randomUnit();
+  while (u1 <= 0) u1 = randomUnit();
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
