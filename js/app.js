@@ -42,11 +42,11 @@ const T = {
     fire: { need: '필요 은퇴 자산', needNet: '국민연금 반영 시 필요액', progress: '달성률 (계좌 합계 자동 반영)', now: '현재', atRetire: '은퇴 시' },
     accounts: { title: '연금 · 투자 계좌', add: '+ 계좌 추가', noAccs: '계좌가 없습니다.<br>Roth IRA, 연금저축펀드 등을 추가하세요.' },
     events: { title: '인생 이벤트', add: '+ 이벤트 추가', noEvs: '이벤트가 없습니다.' },
-    summary: { nw: '순자산 (Net Worth)', subNW: '자산 {assets} − 부채 {debt}', debt: '총 부채', noDebt: '부채 없음 ✓', debtLabel: '부채', mortgage: '모기지', studentLoan: '학자금', car: '차량', other: '기타', retire: '은퇴 시 예상 (세후)', subRetire: '투자 {invest} · 계좌 {acc}', deplete: '자산 소진 예상', depleteSub: '전체 자산 소진 예상', noDeplete: '100세+', noDepleteSub: '기간 내 소진 없음 ✓', save: '연간 순저축', subSave: '수입 − 지출 − 부채상환', ageSuffix: '세' },
+    summary: { nw: '순자산 (Net Worth)', subNW: '자산 {assets} − 부채 {debt}', subNWPlaceholder: '자산 − 부채', debt: '총 부채', noDebt: '부채 없음 ✓', debtLabel: '부채', mortgage: '모기지', studentLoan: '학자금', car: '차량', other: '기타', retire: '은퇴 시 예상 (세후)', subRetire: '투자 {invest} · 계좌 {acc}', deplete: '자산 소진 예상', depleteSub: '전체 자산 소진 예상', noDeplete: '100세+', noDepleteSub: '기간 내 소진 없음 ✓', save: '연간 순저축', subSave: '수입 − 지출 − 부채상환', ageSuffix: '세' },
     chart: { total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)' },
     table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
     acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
-    ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', noName: '이름 없음', delete: '🗑 삭제' },
+    ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
     accType: { roth_label: 'Roth IRA', roth_desc: '세후 납입 → 인출 비과세', traditional_label: 'Traditional IRA / 401k', traditional_desc: '세전 납입 → 인출 시 과세', pension_kr_label: '한국 연금저축펀드', pension_kr_desc: '세전 납입 → 연금소득세 과세', taxable_label: '일반 과세 계좌', taxable_desc: '수익에 대해 매년 과세', account: '계좌' },
     evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
     exportCopy: '데이터 복사 (채팅에 붙여넣기)', exportToast: '클립보드에 복사됨. 채팅에 붙여넣어 전달하세요.', exportFailed: '복사 실패. 수동으로 복사해 주세요.',
@@ -67,11 +67,11 @@ const T = {
     fire: { need: 'Required retirement assets', needNet: 'Required (net of pension)', progress: 'Progress (accounts)', now: 'Now', atRetire: 'At retirement' },
     accounts: { title: 'Pension · Investment accounts', add: '+ Add account', noAccs: 'No accounts.<br>Add Roth IRA, 401k, etc.' },
     events: { title: 'Life events', add: '+ Add event', noEvs: 'No events.' },
-    summary: { nw: 'Net Worth', subNW: 'Assets {assets} − Debt {debt}', debt: 'Total debt', noDebt: 'No debt ✓', debtLabel: 'Debt', mortgage: 'Mortgage', studentLoan: 'Student', car: 'Car', other: 'Other', retire: 'At retirement (after tax)', subRetire: 'Invest {invest} · Accounts {acc}', deplete: 'Asset depletion', depleteSub: 'Estimated depletion', noDeplete: '100+', noDepleteSub: 'No depletion ✓', save: 'Annual net savings', subSave: 'Income − Expense − Debt repay', ageSuffix: ' yrs' },
+    summary: { nw: 'Net Worth', subNW: 'Assets {assets} − Debt {debt}', subNWPlaceholder: 'Assets − Debt', debt: 'Total debt', noDebt: 'No debt ✓', debtLabel: 'Debt', mortgage: 'Mortgage', studentLoan: 'Student', car: 'Car', other: 'Other', retire: 'At retirement (after tax)', subRetire: 'Invest {invest} · Accounts {acc}', deplete: 'Asset depletion', depleteSub: 'Estimated depletion', noDeplete: '100+', noDepleteSub: 'No depletion ✓', save: 'Annual net savings', subSave: 'Income − Expense − Debt repay', ageSuffix: ' yrs' },
     chart: { total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)' },
     table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
     acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
-    ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', income: '💹 Income change', expense: '💸 Expense change', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', noName: 'Unnamed', delete: '🗑 Delete' },
+    ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', income: '💹 Income change', expense: '💸 Expense change', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
     accType: { roth_label: 'Roth IRA', roth_desc: 'After-tax → tax-free withdrawal', traditional_label: 'Traditional IRA / 401k', traditional_desc: 'Pre-tax → taxed on withdrawal', pension_kr_label: 'Korea pension fund', pension_kr_desc: 'Pre-tax → pension tax on withdrawal', taxable_label: 'Taxable account', taxable_desc: 'Taxed annually on gains', account: 'Account' },
     evBadge: { income: '💹 Income', expense: '💸 Expense', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
     exportCopy: 'Copy data (paste in chat)', exportToast: 'Copied to clipboard. Paste in chat to share.', exportFailed: 'Copy failed. Copy manually.',
@@ -167,10 +167,46 @@ function getStateForExport() {
   };
 }
 
+function buildYearlyTableText(rows, showRetireOnly) {
+  const list = showRetireOnly ? rows.filter(r => r.isRetired) : rows;
+  if (list.length === 0) return '';
+  const retAge = pN('retireAge');
+  const ageSfx = t('summary.ageSuffix');
+  const accCols = accounts.map(a => a.name || getAccTypeLabel(a.type));
+  const headers = [t('table.age'), t('table.event'), t('table.income'), t('table.expense'), t('table.savings'), t('table.investCol')]
+    .concat(accCols)
+    .concat([t('table.total')]);
+  const line = (cells) => cells.join(' | ');
+  const sep = line(headers.map(() => '---'));
+  const scenarioLabel = t('chart.' + currentSc) || currentSc;
+  const lines = ['## ' + t('table.title') + ' - ' + scenarioLabel + '\n', '| ' + line(headers) + ' |', '| ' + sep + ' |'];
+  for (const r of list) {
+    const evStr = r.events.length ? r.events.map(e => e.label).join(', ') : '—';
+    const inc = r.income != null ? fmt(r.income) : '—';
+    const exp = fmt(r.expense);
+    const sav = fmt(r.savings);
+    const inv = r.invest < 0 ? t('table.depleted') : fmt(r.invest);
+    const accCells = accounts.map(a => {
+      const snap = r.accSnapshot.find(s => s.id === a.id);
+      if (!snap) return '—';
+      const accType = ACC_TYPES[a.type] || ACC_TYPES.roth;
+      const txRate = (parseFloat(a.withdrawTaxRate) || 0) / 100;
+      const afterTax = accType.taxOnWithdraw ? snap.balance * (1 - txRate) : snap.balance;
+      return fmt(afterTax);
+    });
+    const ageCell = r.age + ageSfx + (r.age === retAge ? ' (' + t('table.retireTag') + ')' : '');
+    const rowCells = [ageCell, evStr, inc, exp, sav, inv].concat(accCells).concat([fmt(r.totalLiquid)]);
+    lines.push('| ' + line(rowCells) + ' |');
+  }
+  return lines.join('\n');
+}
+
 function copyStateToClipboard() {
   const state = getStateForExport();
   const json = JSON.stringify(state, null, 2);
-  const wrap = '```json\n' + json + '\n```';
+  const rows = simulate(currentSc);
+  const tableText = buildYearlyTableText(rows, state.showRetireOnly);
+  const wrap = '```json\n' + json + '\n```' + (tableText ? '\n\n' + tableText : '');
   navigator.clipboard.writeText(wrap).then(() => {
     const el = document.getElementById('exportToast');
     if (el) {
@@ -302,10 +338,10 @@ function simulate(sk = 'base') {
     for (const ev of events) {
       if (parseInt(ev.age, 10) !== age) continue;
       const val = Number(parseMoney(ev.value));
-      if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, label: ev.name || '수입 변경' }); }
-      else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, label: ev.name || '지출 변경' }); }
-      else if (ev.type === 'lumpsum-out') { lumpOut += val; evDescs.push({ type: ev.type, label: ev.name || '목돈 지출' }); }
-      else if (ev.type === 'lumpsum-in') { lumpIn += val; evDescs.push({ type: ev.type, label: ev.name || '목돈 유입' }); }
+      if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.income') }); }
+      else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.expense') }); }
+      else if (ev.type === 'lumpsum-out') { lumpOut += val; evDescs.push({ type: ev.type, label: ev.name || t('ev.lumpOut') }); }
+      else if (ev.type === 'lumpsum-in') { lumpIn += val; evDescs.push({ type: ev.type, label: ev.name || t('ev.lumpIn') }); }
     }
 
     const mPayment = mortgage > 0 ? mortgage * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30 - (age - startAge)))) : 0;
@@ -676,7 +712,7 @@ function updateAccount(id, field, value) {
   a[field] = value;
   if (field === 'name') {
     const nameEl = document.querySelector('#ac-' + id + ' .acc-name');
-    if (nameEl) nameEl.textContent = value || (ACC_TYPES[a.type]?.label || '');
+    if (nameEl) nameEl.textContent = value || getAccTypeLabel(a.type);
   } else if (['type', 'employerMatchMode'].includes(field)) {
     renderAccountList();
   }
@@ -689,6 +725,7 @@ function toggleAcc(id) {
 
 function renderAccountList() {
   const list = document.getElementById('accountList');
+  if (!list) return;
   const openIds = new Set();
   list.querySelectorAll('.acc-card.open').forEach(el => openIds.add(el.id));
   list.querySelectorAll('.acc-card').forEach(el => el.remove());
@@ -697,7 +734,7 @@ function renderAccountList() {
   if (nm) nm.style.display = 'none';
 
   for (const a of accounts) {
-    const t = ACC_TYPES[a.type] || ACC_TYPES.roth;
+    const accType = ACC_TYPES[a.type] || ACC_TYPES.roth;
     const empMode = a.employerMatchMode || (a.contribEmployerRate ? 'percent' : 'fixed');
     const card = document.createElement('div');
     card.className = 'acc-card';
@@ -707,7 +744,7 @@ function renderAccountList() {
     const balFmt = a.balance ? fmt(parseFloat(a.balance)) : (CURRENCY === 'KRW' ? '₩0' : '$0');
     card.innerHTML = `
       <div class="acc-head" onclick="toggleAcc(${a.id})">
-        <span class="acc-badge ${t.badge}">${typeLabel}</span>
+        <span class="acc-badge ${accType.badge}">${typeLabel}</span>
         <span class="acc-name">${a.name || typeLabel}</span>
         <span class="acc-bal">${balFmt}</span>
         <span class="acc-toggle">▼</span>
@@ -792,7 +829,7 @@ function renderAccountList() {
 // ═══════════════════════════════════════════════════
 function addEvent(opts = {}) {
   const id = ++eid;
-  events.push({
+  events.unshift({
     id,
     type: opts.type || 'income',
     name: opts.name || '',
@@ -885,7 +922,7 @@ function renderEventList() {
             <div class="iw"><input class="acc-num" type="number" value="${ev.age}" min="1" max="99" onchange="updateEvent(${ev.id},'age',parseInt(this.value))"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
           <div class="field"><label>${t('ev.amount')}</label>
-            <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="e.g. 150000 or 150k" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
+            <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="${t('ev.placeholderAmount')}" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
           </div>
         </div>
         <div class="acc-foot"><button class="btn-del" onclick="removeEvent(${ev.id})">${t('ev.delete')}</button></div>
@@ -910,24 +947,40 @@ function mTab(t) {
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
-applyLocale();
-document.querySelectorAll('input[id]').forEach(inp => {
-  inp.addEventListener('input', renderAll);
-  inp.addEventListener('change', renderAll);
-});
+function init() {
+  applyLocale();
+  document.body.addEventListener('click', function (e) {
+    const btn = e.target.id === 'btnAddAccount' ? e.target : (e.target.closest && e.target.closest('#panel-accounts .btn-add'));
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      addAccount();
+    }
+  }, true);
+  document.querySelectorAll('input[id]').forEach(inp => {
+    inp.addEventListener('input', renderAll);
+    inp.addEventListener('change', renderAll);
+  });
 
-const hasSaved = loadState();
-if (hasSaved) {
-  renderAccountList();
-  renderEventList();
-  ['base', 'opt', 'pes'].forEach(t => document.getElementById('tab-' + t)?.classList.toggle('active', t === currentSc));
-  renderAll();
+  const hasSaved = loadState();
+  if (hasSaved) {
+    renderAccountList();
+    renderEventList();
+    ['base', 'opt', 'pes'].forEach(t => document.getElementById('tab-' + t)?.classList.toggle('active', t === currentSc));
+    renderAll();
+  } else {
+    const isEn = LOCALE === 'en';
+    addAccount({ type: 'roth', name: isEn ? 'Roth IRA (US)' : 'Roth IRA (미국)', balance: '15000', rate: '7', contribSelf: '7000', contribEmployer: '0', withdrawTaxRate: '0', retireDrawAge: '59' });
+    addAccount({ type: 'pension_kr', name: isEn ? 'Pension fund (Korea)' : '연금저축펀드 (한국)', balance: '5000', rate: '5', contribSelf: '3000', contribEmployer: '0', withdrawTaxRate: '3.3', retireDrawAge: '55' });
+    addEvent({ type: 'income', name: isEn ? 'Promotion / raise' : '승진 / 연봉 인상', age: 35, value: 110000 });
+    addEvent({ type: 'lumpsum-out', name: isEn ? 'Home purchase (down payment)' : '집 구매 (다운페이)', age: 38, value: 80000 });
+    addEvent({ type: 'lumpsum-in', name: isEn ? 'Real estate sale' : '부동산 매각', age: 50, value: 300000 });
+    addEvent({ type: 'expense', name: isEn ? 'Post-retirement expense adjustment' : '은퇴 후 생활비 조정', age: 55, value: 40000 });
+    renderAll();
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
 } else {
-  addAccount({ type: 'roth', name: 'Roth IRA (미국)', balance: '15000', rate: '7', contribSelf: '7000', contribEmployer: '0', withdrawTaxRate: '0', retireDrawAge: '59' });
-  addAccount({ type: 'pension_kr', name: '연금저축펀드 (한국)', balance: '5000', rate: '5', contribSelf: '3000', contribEmployer: '0', withdrawTaxRate: '3.3', retireDrawAge: '55' });
-  addEvent({ type: 'income', name: '승진 / 연봉 인상', age: 35, value: 110000 });
-  addEvent({ type: 'lumpsum-out', name: '집 구매 (다운페이)', age: 38, value: 80000 });
-  addEvent({ type: 'lumpsum-in', name: '부동산 매각', age: 50, value: 300000 });
-  addEvent({ type: 'expense', name: '은퇴 후 생활비 조정', age: 55, value: 40000 });
-  renderAll();
+  init();
 }

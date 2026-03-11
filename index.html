@@ -137,7 +137,7 @@
     <div class="accounts-wrap">
       <div class="acc-header">
         <div class="acc-title" data-i18n="accounts.title">연금 · 투자 계좌</div>
-        <button class="btn-add" onclick="addAccount()" data-i18n="accounts.add">+ 계좌 추가</button>
+        <button type="button" class="btn-add" id="btnAddAccount" data-i18n="accounts.add">+ 계좌 추가</button>
       </div>
       <div id="accountList">
         <div class="no-accs" id="noAccsMsg" data-i18n="accounts.noAccs" data-i18n-html>계좌가 없습니다.<br>Roth IRA, 연금저축펀드 등을 추가하세요.</div>
@@ -168,7 +168,7 @@
       <div class="sum-card">
         <div class="lbl" data-i18n="summary.nw">순자산 (Net Worth)</div>
         <div class="val co" id="sumNW">—</div>
-        <div class="sub" id="subNW">자산 − 부채</div>
+        <div class="sub" id="subNW" data-i18n="summary.subNWPlaceholder">자산 − 부채</div>
       </div>
       <div class="sum-card">
         <div class="lbl" data-i18n="summary.debt">총 부채</div>
