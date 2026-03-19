@@ -46,7 +46,7 @@ const T = {
     chart: { view: '보기', total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)', modeSingle: '단일 궤적', modeMC: '몬테카를로', volatility: '변동성 (표준편차 %)', mcRun: '몬테카를로 실행', mcRunning: '실행 중…', mcSuccess: '성공률 (100세까지 소진 없음)', mcP10: '10% 하위', mcP50: '중앙값 (50%)', mcP90: '90% 상위',
     mcHelp: '차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).' },
     table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', investColTitle: '비연금만 해당. 소진 = 이 항목 0 이하. 총자산에는 연금 포함.', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
-    acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
+    acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribStart: '납입 시작 나이', contribStartPlaceholder: '비우면 현재 나이', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
     ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
     accType: { roth_label: 'Roth IRA', roth_desc: '세후 납입 → 인출 비과세', traditional_label: 'Traditional IRA / 401k', traditional_desc: '세전 납입 → 인출 시 과세', pension_kr_label: '한국 연금저축펀드', pension_kr_desc: '세전 납입 → 연금소득세 과세', taxable_label: '일반 과세 계좌', taxable_desc: '수익에 대해 매년 과세', account: '계좌' },
     evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
@@ -72,7 +72,7 @@ const T = {
     chart: { view: 'View', total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)', modeSingle: 'Single path', modeMC: 'Monte Carlo', volatility: 'Volatility (std dev %)', mcRun: 'Run Monte Carlo', mcRunning: 'Running…', mcSuccess: 'Success rate (no depletion by 100)', mcP10: '10th %ile', mcP50: 'Median (50%)', mcP90: '90th %ile',
     mcHelp: 'Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.' },
     table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', investColTitle: 'Non-pension only. Depleted = this bucket ≤ 0. Total includes retirement accounts.', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
-    acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
+    acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribStart: 'Contrib. start age', contribStartPlaceholder: 'Empty = current age', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
     ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', income: '💹 Income change', expense: '💸 Expense change', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
     accType: { roth_label: 'Roth IRA', roth_desc: 'After-tax → tax-free withdrawal', traditional_label: 'Traditional IRA / 401k', traditional_desc: 'Pre-tax → taxed on withdrawal', pension_kr_label: 'Korea pension fund', pension_kr_desc: 'Pre-tax → pension tax on withdrawal', taxable_label: 'Taxable account', taxable_desc: 'Taxed annually on gains', account: 'Account' },
     evBadge: { income: '💹 Income', expense: '💸 Expense', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
@@ -334,6 +334,7 @@ function simulate(sk = 'base', returnSequence = null) {
     employerMatchMode: a.employerMatchMode || (a.contribEmployerRate ? 'percent' : 'fixed'),
     matchRate: (parseFloat(a.matchRate) || 50) / 100,
     matchCapPercent: (parseFloat(a.matchCapPercent) || 8) / 100,
+    contribStartAge: parseInt(a.contribStartAge) || startAge,
     contribEndAge: parseInt(a.contribEndAge) || retireAge,
     withdrawTaxRate: (parseFloat(a.withdrawTaxRate) || 0) / 100,
     retireDrawAge: parseInt(a.retireDrawAge) || 60,
@@ -365,7 +366,7 @@ function simulate(sk = 'base', returnSequence = null) {
     let totalAccContrib = 0;
     let totalAccBalancePre = 0;
     for (const ac of accState) {
-      const stillContrib = age < ac.contribEndAge;
+      const stillContrib = age >= ac.contribStartAge && age < ac.contribEndAge;
       const selfAmt = stillContrib ? (ac.contribSelfRate > 0 ? income * ac.contribSelfRate : ac.contribSelf) : 0;
       let employerAmt = 0;
       if (stillContrib) {
@@ -879,6 +880,7 @@ function addAccount(opts = {}) {
     employerMatchMode: opts.employerMatchMode || 'percent',
     matchRate: opts.matchRate ?? '50',
     matchCapPercent: opts.matchCapPercent ?? '8',
+    contribStartAge: opts.contribStartAge ?? '',
     contribEndAge: opts.contribEndAge ?? '',
     withdrawTaxRate: opts.withdrawTaxRate || '0',
     retireDrawAge: opts.retireDrawAge || '60',
@@ -991,9 +993,14 @@ function renderAccountList() {
           </div>
         </div>
         <div class="row2">
+          <div class="field"><label>${t('acc.contribStart')}</label>
+            <div class="iw"><input class="acc-num" type="number" value="${a.contribStartAge ?? ''}" placeholder="${t('acc.contribStartPlaceholder')}" min="1" max="99" oninput="updateAccount(${a.id},'contribStartAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
+          </div>
           <div class="field"><label>${t('acc.contribEnd')}</label>
             <div class="iw"><input class="acc-num" type="number" value="${a.contribEndAge ?? ''}" placeholder="${t('acc.contribEndPlaceholder')}" min="1" max="99" oninput="updateAccount(${a.id},'contribEndAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
+        </div>
+        <div class="row2">
           <div class="field"><label>${t('acc.drawAge')}</label>
             <div class="iw"><input class="acc-num" type="number" value="${a.retireDrawAge}" placeholder="60" oninput="updateAccount(${a.id},'retireDrawAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
