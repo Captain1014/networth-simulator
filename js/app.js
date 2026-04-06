@@ -43,7 +43,7 @@ const T = {
     accounts: { title: '연금 · 투자 계좌', add: '+ 계좌 추가', noAccs: '계좌가 없습니다.<br>Roth IRA, 연금저축펀드 등을 추가하세요.' },
     events: { title: '인생 이벤트', add: '+ 이벤트 추가', noEvs: '이벤트가 없습니다.' },
     summary: { nw: '순자산 (Net Worth)', subNW: '자산 {assets} − 부채 {debt}', subNWPlaceholder: '자산 − 부채', debt: '총 부채', noDebt: '부채 없음 ✓', debtLabel: '부채', mortgage: '모기지', studentLoan: '학자금', car: '차량', other: '기타', retire: '은퇴 시 예상 (세후)', subRetire: '투자 {invest} · 계좌 {acc}', deplete: '자산 소진 예상', depleteSub: '전체 자산 소진 예상', noDeplete: '100세+', noDepleteSub: '기간 내 소진 없음 ✓', save: '연간 순저축', subSave: '수입 − 지출 − 부채상환', ageSuffix: '세' },
-    chart: { view: '보기', total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)', modeSingle: '단일 궤적', modeMC: '몬테카를로', volatility: '변동성 (표준편차 %)', mcRun: '몬테카를로 실행', mcRunning: '실행 중…', mcSuccess: '성공률 (100세까지 소진 없음)', mcP10: '10% 하위', mcP50: '중앙값 (50%)', mcP90: '90% 상위',
+    chart: { view: '보기', total: '총 자산 (세후)', invest: '투자자산', acc: '연금계좌 합계 (세후)', scenario: '시나리오', base: '기본', opt: '낙관 (+2%)', pes: '비관 (−2%)', modeSingle: '단일 궤적', modeMC: '몬테카를로', modeHousing: '주거 비교', volatility: '변동성 (표준편차 %)', mcRun: '몬테카를로 실행', mcRunning: '실행 중…', mcSuccess: '성공률 (100세까지 소진 없음)', mcP10: '10% 하위', mcP50: '중앙값 (50%)', mcP90: '90% 상위',
     mcHelp: '차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).' },
     table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', investColTitle: '비연금만 해당. 소진 = 이 항목 0 이하. 총자산에는 연금 포함.', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
     acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribStart: '납입 시작 나이', contribStartPlaceholder: '비우면 현재 나이', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
@@ -56,6 +56,21 @@ const T = {
     encSaveTitle: '백업 생성', encSaveDesc: '비밀번호를 설정하면 현재 데이터를 암호화한 문자열이 생성됩니다. 이 문자열을 코드의 js/backup.js에 저장하세요.', encSaveBtn: '암호화 생성', encSaveCopy: '복사됨!',
     encRestoreTitle: '백업 복원', encRestoreDesc: '비밀번호를 입력하면 코드에 저장된 백업 데이터가 복원됩니다.', encRestoreBtn: '복원', encRestoreSuccess: '백업이 복원되었습니다!', encRestoreFailed: '복원 실패 — 비밀번호가 틀리거나 백업이 없습니다.',
     encPwLabel: '비밀번호', encPwEmpty: '비밀번호를 입력하세요.', encNoBackup: '저장된 백업이 없습니다. 먼저 백업을 생성하세요.',
+    housing: {
+      modalTitle: '🏠 주거 시나리오 비교', modalDesc: '최대 3개 시나리오를 설정하고 장기 순자산을 비교하세요.',
+      add: '+ 시나리오 추가', run: '비교 실행', editScenarios: '시나리오 설정', scenario: '시나리오', modeHousing: '주거 비교',
+      typeBuy: '🏠 매수', typeJeonse: '🔑 전세', typeRent: '💸 월세',
+      startAge: '시작 나이', purchasePrice: '매수가', appreciationRate: '부동산 상승률', annualMaintenance: '연 유지비 (재산세+관리비)',
+      ltvRatio: 'LTV 대출 비율', loanRate: '대출 이자율', loanTerm: '대출 기간', loanType: '상환 방식',
+      loanAmortizing: '원리금균등', loanInterestOnly: '이자만', loanSection: '대출',
+      deposit: '전세 보증금', depositRenewalRate: '전세가 상승률', renewalCycle: '갱신주기',
+      monthlyRent: '월세', rentDeposit: '보증금', rentIncreaseRate: '월세 상승률',
+      breakeven: '손익분기점', breakevenBuyVsRent: '매수 vs 월세', breakevenBuyVsJeonse: '매수 vs 전세',
+      noBreakeven: '기간 내 역전 없음', noScenarios: '시나리오를 추가하세요.',
+      tableInitial: '초기 투입', tableLoan: '대출', tableNetWorth: '순자산', tableCumulCost: '누적 주거비용',
+      delete: '🗑 삭제', name: '이름', namePlaceholder: '예: 강남 아파트 매수',
+      yearSfx: '년', pctSfx: '%',
+    },
   },
   en: {
     ageSfx: ' yrs', currencySfx: 'USD', currencySfxMonthly: 'USD/mo', currencySfxYr: 'USD/yr',
@@ -74,7 +89,7 @@ const T = {
     accounts: { title: 'Pension · Investment accounts', add: '+ Add account', noAccs: 'No accounts.<br>Add Roth IRA, 401k, etc.' },
     events: { title: 'Life events', add: '+ Add event', noEvs: 'No events.' },
     summary: { nw: 'Net Worth', subNW: 'Assets {assets} − Debt {debt}', subNWPlaceholder: 'Assets − Debt', debt: 'Total debt', noDebt: 'No debt ✓', debtLabel: 'Debt', mortgage: 'Mortgage', studentLoan: 'Student', car: 'Car', other: 'Other', retire: 'At retirement (after tax)', subRetire: 'Invest {invest} · Accounts {acc}', deplete: 'Asset depletion', depleteSub: 'Estimated depletion', noDeplete: '100+', noDepleteSub: 'No depletion ✓', save: 'Annual net savings', subSave: 'Income − Expense − Debt repay', ageSuffix: ' yrs' },
-    chart: { view: 'View', total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)', modeSingle: 'Single path', modeMC: 'Monte Carlo', volatility: 'Volatility (std dev %)', mcRun: 'Run Monte Carlo', mcRunning: 'Running…', mcSuccess: 'Success rate (no depletion by 100)', mcP10: '10th %ile', mcP50: 'Median (50%)', mcP90: '90th %ile',
+    chart: { view: 'View', total: 'Total assets (after tax)', invest: 'Investment', acc: 'Accounts (after tax)', scenario: 'Scenario', base: 'Base', opt: 'Optimistic (+2%)', pes: 'Pessimistic (−2%)', modeSingle: 'Single path', modeMC: 'Monte Carlo', modeHousing: 'Housing', volatility: 'Volatility (std dev %)', mcRun: 'Run Monte Carlo', mcRunning: 'Running…', mcSuccess: 'Success rate (no depletion by 100)', mcP10: '10th %ile', mcP50: 'Median (50%)', mcP90: '90th %ile',
     mcHelp: 'Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.' },
     table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', investColTitle: 'Non-pension only. Depleted = this bucket ≤ 0. Total includes retirement accounts.', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
     acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribStart: 'Contrib. start age', contribStartPlaceholder: 'Empty = current age', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
@@ -87,6 +102,21 @@ const T = {
     encSaveTitle: 'Create Backup', encSaveDesc: 'Set a password to generate an encrypted backup string. Save this string in js/backup.js in the codebase.', encSaveBtn: 'Generate', encSaveCopy: 'Copied!',
     encRestoreTitle: 'Restore Backup', encRestoreDesc: 'Enter your password to restore data saved in the codebase.', encRestoreBtn: 'Restore', encRestoreSuccess: 'Backup restored!', encRestoreFailed: 'Restore failed — wrong password or no backup found.',
     encPwLabel: 'Password', encPwEmpty: 'Please enter a password.', encNoBackup: 'No backup found. Create a backup first.',
+    housing: {
+      modalTitle: '🏠 Housing Scenario Comparison', modalDesc: 'Set up to 3 scenarios and compare long-term net worth.',
+      add: '+ Add scenario', run: 'Run comparison', editScenarios: 'Edit scenarios', scenario: 'Scenario', modeHousing: 'Housing',
+      typeBuy: '🏠 Buy', typeJeonse: '🔑 Jeonse', typeRent: '💸 Rent',
+      startAge: 'Start age', purchasePrice: 'Purchase price', appreciationRate: 'Appreciation rate', annualMaintenance: 'Annual maintenance',
+      ltvRatio: 'LTV ratio', loanRate: 'Loan rate', loanTerm: 'Loan term', loanType: 'Repayment type',
+      loanAmortizing: 'Amortizing', loanInterestOnly: 'Interest only', loanSection: 'Loan',
+      deposit: 'Jeonse deposit', depositRenewalRate: 'Deposit renewal rate', renewalCycle: 'Renewal cycle',
+      monthlyRent: 'Monthly rent', rentDeposit: 'Deposit', rentIncreaseRate: 'Rent increase rate',
+      breakeven: 'Breakeven', breakevenBuyVsRent: 'Buy vs Rent', breakevenBuyVsJeonse: 'Buy vs Jeonse',
+      noBreakeven: 'No crossover in range', noScenarios: 'Add a scenario to compare.',
+      tableInitial: 'Initial outlay', tableLoan: 'Loan', tableNetWorth: 'Net worth', tableCumulCost: 'Cumulative cost',
+      delete: '🗑 Delete', name: 'Name', namePlaceholder: 'e.g. Buy apartment in Gangnam',
+      yearSfx: ' yrs', pctSfx: '%',
+    },
   },
 };
 function t(key) {
@@ -136,8 +166,11 @@ const INPUT_IDS = [
   'annualIncome', 'annualExpense',
   'targetMonthly', 'withdrawRate', 'externalPension',
 ];
-let chartMode = 'single'; // 'single' | 'montecarlo'
+let chartMode = 'single'; // 'single' | 'montecarlo' | 'housing'
 let mcResult = null;     // { successRate, p10, p50, p90, labels } or null
+let housingScenarios = [];
+let hsid = 0;
+let housingResult = null;
 const MC_RUNS = 1000;
 let saveTimeout = null;
 
@@ -158,6 +191,7 @@ function saveState() {
         inputs,
         accounts: accounts.map(a => ({ ...a })),
         events: events.map(e => ({ ...e })),
+        housingScenarios: housingScenarios.map(h => ({ ...h })),
         currentSc,
         showRetireOnly: showRetireOnlyEl ? showRetireOnlyEl.checked : false,
       };
@@ -177,6 +211,7 @@ function getStateForExport() {
     inputs,
     accounts: accounts.map(a => ({ ...a })),
     events: events.map(e => ({ ...e })),
+    housingScenarios: housingScenarios.map(h => ({ ...h })),
     currentSc,
     showRetireOnly: showRetireOnlyEl ? showRetireOnlyEl.checked : false,
   };
@@ -292,6 +327,10 @@ function applyImportData() {
     if (Array.isArray(state.events)) {
       events = state.events;
       eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
+    }
+    if (Array.isArray(state.housingScenarios)) {
+      housingScenarios = state.housingScenarios;
+      hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
     }
     if (state.currentSc && SC[state.currentSc]) {
       currentSc = state.currentSc;
@@ -462,6 +501,10 @@ async function doBackupRestore() {
       events = state.events;
       eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
     }
+    if (Array.isArray(state.housingScenarios)) {
+      housingScenarios = state.housingScenarios;
+      hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
+    }
     if (state.currentSc && SC[state.currentSc]) {
       currentSc = state.currentSc;
       document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
@@ -497,6 +540,10 @@ function loadState() {
     if (Array.isArray(state.events) && state.events.length > 0) {
       events = state.events;
       eid = Math.max(0, ...events.map(e => e.id));
+    }
+    if (Array.isArray(state.housingScenarios)) {
+      housingScenarios = state.housingScenarios;
+      hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
     }
     if (state.currentSc && SC[state.currentSc]) currentSc = state.currentSc;
     const showRetireOnlyEl = document.getElementById('showRetireOnly');
@@ -876,6 +923,10 @@ function renderChart(rows) {
     renderChartMC(mcResult);
     return;
   }
+  if (chartMode === 'housing' && housingResult) {
+    renderChartHousing(housingResult);
+    return;
+  }
   const ageSfx = t('summary.ageSuffix');
   const labels = rows.map(r => r.age + ageSfx);
   const totalD = rows.map(r => Math.round(r.totalLiquid));
@@ -1086,12 +1137,24 @@ function setChartMode(mode) {
   chartMode = mode;
   document.getElementById('chartModeSingle')?.classList.toggle('active', mode === 'single');
   document.getElementById('chartModeMC')?.classList.toggle('active', mode === 'montecarlo');
+  document.getElementById('chartModeHousing')?.classList.toggle('active', mode === 'housing');
   const mcEl = document.getElementById('mc-controls');
   const scBar = document.getElementById('scenarioBar');
+  const hsEl = document.getElementById('housing-controls');
+  const hsTable = document.getElementById('housingTableWrap');
   if (mcEl) mcEl.style.display = mode === 'montecarlo' ? 'flex' : 'none';
   if (scBar) scBar.style.display = mode === 'single' ? 'flex' : 'none';
+  if (hsEl) hsEl.style.display = mode === 'housing' ? 'flex' : 'none';
+  if (hsTable && mode !== 'housing') hsTable.style.display = 'none';
   updateMcSuccessLabel();
-  renderAll();
+  if (mode === 'housing' && housingScenarios.length > 0) {
+    housingResult = simulateHousing();
+    renderChartHousing(housingResult);
+    renderHousingTable(housingResult);
+    updateHousingBreakevenLabel(housingResult);
+  } else {
+    renderAll();
+  }
 }
 
 function updateMcSuccessLabel() {
@@ -1415,6 +1478,468 @@ function mTab(t) {
     document.getElementById('panel-' + k)?.classList.toggle('active', k === t);
   });
   if (t === 'chart' && chartInst) setTimeout(() => chartInst.resize(), 50);
+}
+
+// ═══════════════════════════════════════════════════
+// HOUSING SCENARIO COMPARISON
+// ═══════════════════════════════════════════════════
+const HS_COLORS = ['#d4a853', '#5bbfb5', '#9b7fe8'];
+
+function addHousingScenario(type) {
+  if (housingScenarios.length >= 3) return;
+  const id = ++hsid;
+  housingScenarios.push({
+    id, type: type || 'buy', name: '', enabled: true,
+    startAge: pN('retireAge') || 50,
+    purchasePrice: 500000, appreciationRate: 3, annualMaintenance: 5000,
+    ltvRatio: 60, loanRate: 4.5, loanTerm: 30, loanType: 'amortizing',
+    deposit: 300000, depositRenewalRate: 3, renewalCycle: 2,
+    monthlyRent: 1500, rentDeposit: 50000, rentIncreaseRate: 3,
+  });
+  renderHousingScenarioList();
+  saveState();
+}
+
+function removeHousingScenario(id) {
+  housingScenarios = housingScenarios.filter(h => h.id !== id);
+  renderHousingScenarioList();
+  saveState();
+}
+
+function updateHousingScenario(id, field, value) {
+  const h = housingScenarios.find(x => x.id === id);
+  if (!h) return;
+  if (['startAge', 'purchasePrice', 'appreciationRate', 'annualMaintenance',
+       'ltvRatio', 'loanRate', 'loanTerm', 'deposit', 'depositRenewalRate',
+       'renewalCycle', 'monthlyRent', 'rentDeposit', 'rentIncreaseRate'].includes(field)) {
+    h[field] = parseFloat(value) || 0;
+  } else {
+    h[field] = value;
+  }
+  if (field === 'type') renderHousingScenarioList();
+  saveState();
+}
+
+function openHousingModal() {
+  const overlay = document.getElementById('housingModalOverlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  renderHousingScenarioList();
+}
+
+function closeHousingModal() {
+  const overlay = document.getElementById('housingModalOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function renderHousingScenarioList() {
+  const modal = document.getElementById('housingModal');
+  if (!modal) return;
+  const labels = { buy: t('housing.typeBuy'), jeonse: t('housing.typeJeonse'), rent: t('housing.typeRent') };
+
+  let html = `<div class="housing-modal-title">${t('housing.modalTitle')}</div>
+    <div class="housing-modal-desc">${t('housing.modalDesc')}</div>
+    <div class="housing-scenario-list">`;
+
+  if (housingScenarios.length === 0) {
+    html += `<div style="color:var(--text3);font-size:12px;padding:16px;text-align:center">${t('housing.noScenarios')}</div>`;
+  }
+
+  for (let idx = 0; idx < housingScenarios.length; idx++) {
+    const h = housingScenarios[idx];
+    const letter = String.fromCharCode(65 + idx);
+    const color = HS_COLORS[idx];
+
+    html += `<div class="hs-card" style="border-left:3px solid ${color}">
+      <div class="hs-card-head">
+        <span style="font-weight:600;color:${color}">${letter}</span>
+        <select class="acc-sel" onchange="updateHousingScenario(${h.id},'type',this.value)">
+          <option value="buy" ${h.type === 'buy' ? 'selected' : ''}>${labels.buy}</option>
+          <option value="jeonse" ${h.type === 'jeonse' ? 'selected' : ''}>${labels.jeonse}</option>
+          <option value="rent" ${h.type === 'rent' ? 'selected' : ''}>${labels.rent}</option>
+        </select>
+        <input class="acc-inp" type="text" placeholder="${t('housing.namePlaceholder')}"
+          value="${h.name}" oninput="updateHousingScenario(${h.id},'name',this.value)">
+        <button class="btn-del" onclick="removeHousingScenario(${h.id})">${t('housing.delete')}</button>
+      </div>
+      <div class="hs-card-fields">
+        <div class="row2">
+          <div class="field"><label>${t('housing.startAge')}</label>
+            <div class="iw"><input class="acc-num" type="number" value="${h.startAge}" min="1" max="99"
+              onchange="updateHousingScenario(${h.id},'startAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div></div>
+          <div class="field"></div>
+        </div>`;
+
+    if (h.type === 'buy') {
+      html += `
+        <div class="row2">
+          <div class="field"><label>${t('housing.purchasePrice')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${h.purchasePrice}"
+              oninput="updateHousingScenario(${h.id},'purchasePrice',this.value)"><span class="sfx">${t('currencySfx')}</span></div></div>
+          <div class="field"><label>${t('housing.appreciationRate')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${h.appreciationRate}"
+              oninput="updateHousingScenario(${h.id},'appreciationRate',this.value)"><span class="sfx">%</span></div></div>
+        </div>
+        <div class="field"><label>${t('housing.annualMaintenance')}</label>
+          <div class="iw"><input class="acc-num" type="text" value="${h.annualMaintenance}"
+            oninput="updateHousingScenario(${h.id},'annualMaintenance',this.value)"><span class="sfx">${t('currencySfxYr')}</span></div></div>
+        <div class="hs-loan-section">
+          <div class="hs-loan-title">${t('housing.loanSection')}</div>
+          <div class="row2">
+            <div class="field"><label>${t('housing.ltvRatio')}</label>
+              <div class="iw"><input class="acc-num" type="text" value="${h.ltvRatio}"
+                oninput="updateHousingScenario(${h.id},'ltvRatio',this.value)"><span class="sfx">%</span></div></div>
+            <div class="field"><label>${t('housing.loanRate')}</label>
+              <div class="iw"><input class="acc-num" type="text" value="${h.loanRate}"
+                oninput="updateHousingScenario(${h.id},'loanRate',this.value)"><span class="sfx">%</span></div></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>${t('housing.loanTerm')}</label>
+              <div class="iw"><input class="acc-num" type="number" value="${h.loanTerm}" min="1" max="40"
+                onchange="updateHousingScenario(${h.id},'loanTerm',this.value)"><span class="sfx">${t('housing.yearSfx')}</span></div></div>
+            <div class="field"><label>${t('housing.loanType')}</label>
+              <select class="acc-sel" onchange="updateHousingScenario(${h.id},'loanType',this.value)">
+                <option value="amortizing" ${h.loanType === 'amortizing' ? 'selected' : ''}>${t('housing.loanAmortizing')}</option>
+                <option value="interestOnly" ${h.loanType === 'interestOnly' ? 'selected' : ''}>${t('housing.loanInterestOnly')}</option>
+              </select></div>
+          </div>
+        </div>`;
+    } else if (h.type === 'jeonse') {
+      html += `
+        <div class="row2">
+          <div class="field"><label>${t('housing.deposit')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${h.deposit}"
+              oninput="updateHousingScenario(${h.id},'deposit',this.value)"><span class="sfx">${t('currencySfx')}</span></div></div>
+          <div class="field"><label>${t('housing.depositRenewalRate')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${h.depositRenewalRate}"
+              oninput="updateHousingScenario(${h.id},'depositRenewalRate',this.value)"><span class="sfx">%</span></div></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>${t('housing.renewalCycle')}</label>
+            <div class="iw"><input class="acc-num" type="number" value="${h.renewalCycle}" min="1" max="10"
+              onchange="updateHousingScenario(${h.id},'renewalCycle',this.value)"><span class="sfx">${t('housing.yearSfx')}</span></div></div>
+          <div class="field"></div>
+        </div>`;
+    } else if (h.type === 'rent') {
+      html += `
+        <div class="row2">
+          <div class="field"><label>${t('housing.monthlyRent')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${h.monthlyRent}"
+              oninput="updateHousingScenario(${h.id},'monthlyRent',this.value)"><span class="sfx">${t('currencySfxMonthly')}</span></div></div>
+          <div class="field"><label>${t('housing.rentDeposit')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${h.rentDeposit}"
+              oninput="updateHousingScenario(${h.id},'rentDeposit',this.value)"><span class="sfx">${t('currencySfx')}</span></div></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>${t('housing.rentIncreaseRate')}</label>
+            <div class="iw"><input class="acc-num" type="text" value="${h.rentIncreaseRate}"
+              oninput="updateHousingScenario(${h.id},'rentIncreaseRate',this.value)"><span class="sfx">%</span></div></div>
+          <div class="field"></div>
+        </div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  html += `</div>`;
+  if (housingScenarios.length < 3) {
+    html += `<button type="button" class="btn-add-hs" onclick="addHousingScenario()">${t('housing.add')}</button>`;
+  }
+  html += `<div class="housing-modal-actions">
+    <button type="button" class="btn-import-cancel" onclick="closeHousingModal()">${t('importCancel')}</button>
+    <button type="button" class="btn-import-apply" onclick="runHousingComparison()">${t('housing.run')}</button>
+  </div>`;
+
+  modal.innerHTML = html;
+}
+
+// ── Housing Simulation ──
+function simulateHousing() {
+  const baseRows = simulate(currentSc);
+  const rr = pR('returnRate') + SC[currentSc].r / 100;
+  const results = [];
+
+  for (const hs of housingScenarios) {
+    if (!hs.enabled) continue;
+    const rows = [];
+    let investDelta = 0;
+    let propertyValue = 0;
+    let loanBalance = 0;
+    let depositHeld = 0;
+    let cumulativeCost = 0;
+    let annualRent = 0;
+    let currentDeposit = 0;
+    let started = false;
+    let pmt = 0;
+
+    for (let i = 0; i < baseRows.length; i++) {
+      const age = baseRows[i].age;
+      const baseNW = baseRows[i].totalLiquid;
+
+      if (age === hs.startAge) {
+        started = true;
+        if (hs.type === 'buy') {
+          const price = parseMoney(hs.purchasePrice);
+          const ltv = (parseFloat(hs.ltvRatio) || 0) / 100;
+          const downPayment = price * (1 - ltv);
+          loanBalance = price * ltv;
+          investDelta -= downPayment;
+          propertyValue = price;
+          // Pre-compute PMT for amortizing
+          if (loanBalance > 0 && hs.loanType === 'amortizing') {
+            const r = (parseFloat(hs.loanRate) || 0) / 100;
+            const n = parseInt(hs.loanTerm) || 30;
+            pmt = r > 0 ? loanBalance * r / (1 - Math.pow(1 + r, -n)) : loanBalance / n;
+          }
+        } else if (hs.type === 'jeonse') {
+          currentDeposit = parseMoney(hs.deposit);
+          investDelta -= currentDeposit;
+          depositHeld = currentDeposit;
+        } else if (hs.type === 'rent') {
+          const dep = parseMoney(hs.rentDeposit) || 0;
+          investDelta -= dep;
+          depositHeld = dep;
+          annualRent = (parseMoney(hs.monthlyRent) || 0) * 12;
+        }
+      }
+
+      if (started && age > hs.startAge) {
+        // Apply return on delta from previous year
+        investDelta *= (1 + rr);
+
+        if (hs.type === 'buy') {
+          propertyValue *= (1 + (parseFloat(hs.appreciationRate) || 0) / 100);
+          const maint = parseMoney(hs.annualMaintenance) || 0;
+          investDelta -= maint;
+          cumulativeCost += maint;
+          if (loanBalance > 0) {
+            const r = (parseFloat(hs.loanRate) || 0) / 100;
+            if (hs.loanType === 'amortizing') {
+              const interest = loanBalance * r;
+              const principal = Math.min(pmt - interest, loanBalance);
+              loanBalance = Math.max(0, loanBalance - principal);
+              investDelta -= pmt;
+              cumulativeCost += pmt;
+            } else {
+              const interest = loanBalance * r;
+              investDelta -= interest;
+              cumulativeCost += interest;
+            }
+          }
+        } else if (hs.type === 'jeonse') {
+          const cycle = parseInt(hs.renewalCycle) || 2;
+          const yearsIn = age - hs.startAge;
+          if (cycle > 0 && yearsIn % cycle === 0) {
+            const rate = (parseFloat(hs.depositRenewalRate) || 0) / 100;
+            const newDeposit = currentDeposit * (1 + rate);
+            const diff = newDeposit - currentDeposit;
+            investDelta -= diff;
+            depositHeld += diff;
+            cumulativeCost += diff;
+            currentDeposit = newDeposit;
+          }
+        } else if (hs.type === 'rent') {
+          investDelta -= annualRent;
+          cumulativeCost += annualRent;
+          annualRent *= (1 + (parseFloat(hs.rentIncreaseRate) || 0) / 100);
+        }
+      }
+
+      const netWorth = baseNW + investDelta + propertyValue - loanBalance;
+      rows.push({ age, netWorth, propertyValue, loanBalance, depositHeld, cumulativeCost });
+    }
+
+    results.push({ id: hs.id, name: hs.name || t('housing.scenario') + ' ' + String.fromCharCode(65 + results.length), type: hs.type, rows });
+  }
+
+  return { scenarios: results, breakeven: calcBreakeven(results) };
+}
+
+function calcBreakeven(results) {
+  const breakeven = {};
+  const buy = results.find(r => r.type === 'buy');
+  const rent = results.find(r => r.type === 'rent');
+  const jeonse = results.find(r => r.type === 'jeonse');
+
+  if (buy && rent) {
+    // Find first age where buy NW >= rent NW (after initially being lower)
+    let buyWasLower = false;
+    for (let i = 0; i < buy.rows.length; i++) {
+      if (buy.rows[i].netWorth < rent.rows[i].netWorth) buyWasLower = true;
+      if (buyWasLower && buy.rows[i].netWorth >= rent.rows[i].netWorth) {
+        breakeven.buyVsRent = buy.rows[i].age;
+        break;
+      }
+    }
+  }
+  if (buy && jeonse) {
+    let buyWasLower = false;
+    for (let i = 0; i < buy.rows.length; i++) {
+      if (buy.rows[i].netWorth < jeonse.rows[i].netWorth) buyWasLower = true;
+      if (buyWasLower && buy.rows[i].netWorth >= jeonse.rows[i].netWorth) {
+        breakeven.buyVsJeonse = buy.rows[i].age;
+        break;
+      }
+    }
+  }
+  return breakeven;
+}
+
+// ── Housing Chart ──
+function renderChartHousing(data) {
+  if (chartInst) chartInst.destroy();
+  if (!data || !data.scenarios.length) {
+    chartInst = null;
+    return;
+  }
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const ageSfx = t('summary.ageSuffix');
+  const labels = data.scenarios[0].rows.map(r => r.age + ageSfx);
+
+  const datasets = data.scenarios.map((sc, i) => ({
+    label: sc.name,
+    data: sc.rows.map(r => Math.round(r.netWorth)),
+    borderColor: HS_COLORS[i % 3],
+    backgroundColor: i === 0 ? 'rgba(212,168,83,0.07)' : 'transparent',
+    borderWidth: i === 0 ? 2.5 : 2,
+    pointRadius: 0, pointHoverRadius: 4,
+    borderDash: i === 0 ? [] : [4, 3],
+    fill: i === 0, tension: 0.3,
+  }));
+
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#a0a0b8', font: { size: 10 }, boxWidth: 10, padding: 14 } },
+        tooltip: {
+          backgroundColor: '#1e1e27', borderColor: '#2c2c3a', borderWidth: 1,
+          titleColor: '#e8e6f0', bodyColor: '#a0a0b8', padding: 10,
+          callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` },
+        },
+      },
+      scales: {
+        x: { ticks: { color: '#606078', font: { size: 9 }, maxTicksLimit: 14 }, grid: { color: 'rgba(44,44,58,0.4)' } },
+        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
+      },
+    },
+  });
+}
+
+// ── Housing Table ──
+function renderHousingTable(data) {
+  const wrap = document.getElementById('housingTableWrap');
+  if (!wrap) return;
+  if (!data || !data.scenarios.length) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+
+  const startAge = Math.min(...data.scenarios.map(s => s.rows.length ? s.rows[0].age : 100));
+  const hsStartAge = Math.max(...housingScenarios.map(h => h.startAge || startAge));
+  const checkpoints = [hsStartAge, hsStartAge + 10, hsStartAge + 20, hsStartAge + 30].filter(a => a <= 100);
+
+  let html = '<table><thead><tr><th>' + t('housing.tableNetWorth') + '</th>';
+  data.scenarios.forEach((sc, i) => {
+    html += `<th style="color:${HS_COLORS[i]}">${sc.name}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  // Initial outlay row
+  html += `<tr><td>${t('housing.tableInitial')}</td>`;
+  for (const sc of data.scenarios) {
+    const hs = housingScenarios.find(h => h.id === sc.id);
+    let initial = 0;
+    if (hs) {
+      if (hs.type === 'buy') initial = parseMoney(hs.purchasePrice) * (1 - (parseFloat(hs.ltvRatio) || 0) / 100);
+      else if (hs.type === 'jeonse') initial = parseMoney(hs.deposit);
+      else if (hs.type === 'rent') initial = parseMoney(hs.rentDeposit) || 0;
+    }
+    html += `<td>${fmt(initial)}</td>`;
+  }
+  html += '</tr>';
+
+  // Loan row (buy only)
+  if (data.scenarios.some(s => s.type === 'buy')) {
+    html += `<tr><td>${t('housing.tableLoan')}</td>`;
+    for (const sc of data.scenarios) {
+      const hs = housingScenarios.find(h => h.id === sc.id);
+      if (hs && hs.type === 'buy') {
+        html += `<td>${fmt(parseMoney(hs.purchasePrice) * (parseFloat(hs.ltvRatio) || 0) / 100)}</td>`;
+      } else {
+        html += '<td style="color:var(--text3)">—</td>';
+      }
+    }
+    html += '</tr>';
+  }
+
+  // Net worth at checkpoints
+  for (const cp of checkpoints) {
+    html += `<tr><td>${cp}${t('ageSfx')} ${t('housing.tableNetWorth')}</td>`;
+    for (const sc of data.scenarios) {
+      const row = sc.rows.find(r => r.age === cp);
+      html += `<td>${row ? fmt(row.netWorth) : '—'}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  // Cumulative cost
+  html += `<tr><td>${t('housing.tableCumulCost')}</td>`;
+  for (const sc of data.scenarios) {
+    const last = sc.rows[sc.rows.length - 1];
+    html += `<td>${last ? fmt(last.cumulativeCost) : '—'}</td>`;
+  }
+  html += '</tr>';
+
+  // Breakeven
+  if (data.breakeven.buyVsRent || data.breakeven.buyVsJeonse) {
+    html += `<tr><td>${t('housing.breakeven')}</td>`;
+    for (const sc of data.scenarios) {
+      if (sc.type === 'buy') {
+        html += '<td style="color:var(--text3)">— (base)</td>';
+      } else if (sc.type === 'rent' && data.breakeven.buyVsRent) {
+        html += `<td style="color:var(--teal)">${data.breakeven.buyVsRent}${t('ageSfx')}</td>`;
+      } else if (sc.type === 'jeonse' && data.breakeven.buyVsJeonse) {
+        html += `<td style="color:var(--teal)">${data.breakeven.buyVsJeonse}${t('ageSfx')}</td>`;
+      } else {
+        html += `<td style="color:var(--text3)">${t('housing.noBreakeven')}</td>`;
+      }
+    }
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function updateHousingBreakevenLabel(data) {
+  const el = document.getElementById('housingBreakevenLabel');
+  if (!el || !data) { if (el) el.textContent = ''; return; }
+  const parts = [];
+  if (data.breakeven.buyVsRent) {
+    parts.push(t('housing.breakevenBuyVsRent') + ': ' + data.breakeven.buyVsRent + t('ageSfx'));
+  }
+  if (data.breakeven.buyVsJeonse) {
+    parts.push(t('housing.breakevenBuyVsJeonse') + ': ' + data.breakeven.buyVsJeonse + t('ageSfx'));
+  }
+  el.textContent = parts.length ? t('housing.breakeven') + ' — ' + parts.join(' · ') : '';
+}
+
+function runHousingComparison() {
+  closeHousingModal();
+  if (housingScenarios.length === 0) return;
+  chartMode = 'housing';
+  document.getElementById('chartModeSingle')?.classList.remove('active');
+  document.getElementById('chartModeMC')?.classList.remove('active');
+  document.getElementById('chartModeHousing')?.classList.add('active');
+  document.getElementById('mc-controls').style.display = 'none';
+  document.getElementById('scenarioBar').style.display = 'none';
+  document.getElementById('housing-controls').style.display = 'flex';
+  housingResult = simulateHousing();
+  renderChartHousing(housingResult);
+  renderHousingTable(housingResult);
+  updateHousingBreakevenLabel(housingResult);
+  saveState();
 }
 
 // ═══════════════════════════════════════════════════

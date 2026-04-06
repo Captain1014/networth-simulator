@@ -184,6 +184,7 @@
       <span class="sc-lbl" data-i18n="chart.view">View</span>
       <button type="button" class="sc-btn active" id="chartModeSingle" onclick="setChartMode('single')" data-i18n="chart.modeSingle">Single path</button>
       <button type="button" class="sc-btn" id="chartModeMC" onclick="setChartMode('montecarlo')" data-i18n="chart.modeMC">Monte Carlo</button>
+      <button type="button" class="sc-btn" id="chartModeHousing" onclick="setChartMode('housing')" data-i18n="chart.modeHousing">Housing</button>
     </div>
     <div id="mc-controls" class="mc-controls" style="display:none">
       <label for="returnVolatility" data-i18n="chart.volatility">Volatility (std dev %)</label>
@@ -192,15 +193,20 @@
       <span id="mcSuccessRate" class="mc-success-rate" aria-live="polite"></span>
       <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="chart.mcHelp">Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.</span></span>
     </div>
+    <div id="housing-controls" class="housing-controls" style="display:none">
+      <button type="button" class="btn-housing-edit" onclick="openHousingModal()">🏠 <span data-i18n="housing.editScenarios">Edit scenarios</span></button>
+      <span id="housingBreakevenLabel" class="housing-breakeven"></span>
+    </div>
     <div class="chart-wrap">
       <canvas id="mainChart"></canvas>
     </div>
     <div class="sc-bar" id="scenarioBar">
-      <span class="sc-lbl" id="sc-lbl" data-i18n="chart.scenario">시나리오</span>
-      <button class="sc-btn active" id="tab-base" onclick="switchSc('base')" data-i18n="chart.base">기본</button>
-      <button class="sc-btn" id="tab-opt" onclick="switchSc('opt')" data-i18n="chart.opt">낙관 (+2%)</button>
-      <button class="sc-btn" id="tab-pes" onclick="switchSc('pes')" data-i18n="chart.pes">비관 (−2%)</button>
+      <span class="sc-lbl" id="sc-lbl" data-i18n="chart.scenario">Scenario</span>
+      <button class="sc-btn active" id="tab-base" onclick="switchSc('base')" data-i18n="chart.base">Base</button>
+      <button class="sc-btn" id="tab-opt" onclick="switchSc('opt')" data-i18n="chart.opt">Optimistic (+2%)</button>
+      <button class="sc-btn" id="tab-pes" onclick="switchSc('pes')" data-i18n="chart.pes">Pessimistic (−2%)</button>
     </div>
+    <div id="housingTableWrap" style="display:none"></div>
   </div>
   <div class="tab-panel active" id="panel-table">
     <div class="tbl-section">
@@ -215,6 +221,10 @@
     </div>
   </div>
 </div>
+</div>
+
+<div class="import-modal-overlay" id="housingModalOverlay" style="display:none" onclick="if(event.target===this)closeHousingModal()">
+  <div class="housing-modal" id="housingModal"></div>
 </div>
 
 <script src="../js/backup.js"></script>

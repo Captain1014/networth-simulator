@@ -218,6 +218,77 @@ body {
 }
 .import-toast.show { opacity: 1; }
 
+/* ── Housing Modal ── */
+.housing-modal {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 24px;
+  width: min(640px, 95vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.housing-modal-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.housing-modal-desc { font-size: 12px; color: var(--text2); }
+.housing-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.housing-scenario-list { display: flex; flex-direction: column; gap: 10px; }
+.hs-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.hs-card-head {
+  display: flex; align-items: center; gap: 8px;
+}
+.hs-card-head select { flex: 0 0 auto; }
+.hs-card-head input { flex: 1; }
+.hs-card-head .btn-del { flex: 0 0 auto; }
+.hs-card-fields { display: flex; flex-direction: column; gap: 6px; }
+.hs-card-fields .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hs-loan-section {
+  border-top: 1px solid var(--border);
+  padding-top: 8px; margin-top: 4px;
+}
+.hs-loan-title {
+  font-size: 11px; color: var(--text3); font-weight: 500; margin-bottom: 4px;
+}
+.btn-add-hs {
+  width: 100%; padding: 8px;
+  background: transparent; color: var(--text2);
+  border: 1px dashed var(--border); border-radius: 6px;
+  cursor: pointer; font-family: inherit; font-size: 12px;
+}
+.btn-add-hs:hover { color: var(--gold); border-color: var(--gold); }
+.housing-controls {
+  display: flex; align-items: center; gap: 12px; padding: 8px 0;
+}
+.btn-housing-edit {
+  padding: 6px 14px; font-size: 12px;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; font-family: inherit;
+}
+.btn-housing-edit:hover { border-color: var(--gold); color: var(--gold); }
+.housing-breakeven { font-size: 11px; color: #5bbfb5; }
+#housingTableWrap { margin-top: 12px; }
+#housingTableWrap table {
+  width: 100%; border-collapse: collapse; font-size: 11px;
+}
+#housingTableWrap th {
+  text-align: left; padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text3); font-weight: 500;
+}
+#housingTableWrap td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(44,44,58,0.3);
+  color: var(--text2);
+  font-family: var(--mono); font-size: 11px;
+}
+
 /* ── LAYOUT ── */
 .app {
   display: grid;
