@@ -52,6 +52,9 @@ const T = {
     evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'expense-add': '💸 추가지출', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
     exportCopy: '데이터 복사 (채팅에 붙여넣기)', exportToast: '클립보드에 복사됨. 채팅에 붙여넣어 전달하세요.', exportFailed: '복사 실패. 수동으로 복사해 주세요.',
     importBtn: '데이터 불러오기', importTitle: '데이터 불러오기', importDesc: 'JSON 데이터를 붙여넣고 적용을 누르세요.', importApply: '적용', importCancel: '취소', importSuccess: '데이터가 적용되었습니다.', importFailed: 'JSON 형식이 올바르지 않습니다.',
+    encExport: '🔒 암호화 저장', encImport: '🔒 암호화 불러오기',
+    encExportTitle: '암호화 저장', encExportDesc: '비밀번호를 설정하면 데이터가 암호화되어 파일로 저장됩니다.', encExportPwLabel: '비밀번호', encExportPwConfirm: '비밀번호 확인', encExportBtn: '암호화 저장', encExportSuccess: '암호화된 파일이 다운로드되었습니다.',  encExportPwMismatch: '비밀번호가 일치하지 않습니다.', encExportPwEmpty: '비밀번호를 입력하세요.',
+    encImportTitle: '암호화 불러오기', encImportDesc: '암호화된 파일을 선택하고 비밀번호를 입력하세요.', encImportFileLabel: '암호화 파일 (.enc)', encImportPwLabel: '비밀번호', encImportBtn: '복호화 & 적용', encImportSuccess: '데이터가 복호화되어 적용되었습니다.', encImportFailed: '복호화 실패 — 비밀번호가 틀리거나 파일이 손상되었습니다.', encImportNoFile: '파일을 선택하세요.',
   },
   en: {
     ageSfx: ' yrs', currencySfx: 'USD', currencySfxMonthly: 'USD/mo', currencySfxYr: 'USD/yr',
@@ -79,6 +82,9 @@ const T = {
     evBadge: { income: '💹 Income', expense: '💸 Expense', 'expense-add': '💸 Extra cost', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
     exportCopy: 'Copy data (paste in chat)', exportToast: 'Copied to clipboard. Paste in chat to share.', exportFailed: 'Copy failed. Copy manually.',
     importBtn: 'Import data', importTitle: 'Import Data', importDesc: 'Paste JSON data and click Apply.', importApply: 'Apply', importCancel: 'Cancel', importSuccess: 'Data applied successfully.', importFailed: 'Invalid JSON format.',
+    encExport: '🔒 Encrypted Save', encImport: '🔒 Encrypted Load',
+    encExportTitle: 'Encrypted Save', encExportDesc: 'Set a password to encrypt and download your data.', encExportPwLabel: 'Password', encExportPwConfirm: 'Confirm password', encExportBtn: 'Encrypt & Save', encExportSuccess: 'Encrypted file downloaded.', encExportPwMismatch: 'Passwords do not match.', encExportPwEmpty: 'Please enter a password.',
+    encImportTitle: 'Encrypted Load', encImportDesc: 'Select an encrypted file and enter your password.', encImportFileLabel: 'Encrypted file (.enc)', encImportPwLabel: 'Password', encImportBtn: 'Decrypt & Apply', encImportSuccess: 'Data decrypted and applied.', encImportFailed: 'Decryption failed — wrong password or corrupted file.', encImportNoFile: 'Please select a file.',
   },
 };
 function t(key) {
@@ -311,6 +317,168 @@ function applyImportData() {
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ENCRYPTED SAVE / LOAD (AES-GCM + PBKDF2)
+// ═══════════════════════════════════════════════════
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+
+async function encryptData(password, plaintext) {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+  const buf = new Uint8Array(salt.length + iv.length + ct.byteLength);
+  buf.set(salt, 0);
+  buf.set(iv, salt.length);
+  buf.set(new Uint8Array(ct), salt.length + iv.length);
+  return buf;
+}
+
+async function decryptData(password, buf) {
+  const salt = buf.slice(0, 16);
+  const iv = buf.slice(16, 28);
+  const ct = buf.slice(28);
+  const key = await deriveKey(password, salt);
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new TextDecoder().decode(plain);
+}
+
+function openEncExportModal() {
+  if (document.getElementById('encExportModal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'encExportModal';
+  modal.className = 'import-modal-overlay';
+  modal.innerHTML = `
+    <div class="import-modal">
+      <div class="import-modal-title">${t('encExportTitle')}</div>
+      <p class="import-modal-desc">${t('encExportDesc')}</p>
+      <div class="enc-field"><label>${t('encExportPwLabel')}</label><input type="password" id="encExportPw1" class="enc-input" autocomplete="new-password"></div>
+      <div class="enc-field"><label>${t('encExportPwConfirm')}</label><input type="password" id="encExportPw2" class="enc-input" autocomplete="new-password"></div>
+      <div class="import-modal-actions">
+        <button type="button" class="btn-import-cancel" onclick="closeEncExportModal()">${t('importCancel')}</button>
+        <button type="button" class="btn-import-apply" onclick="doEncExport()">${t('encExportBtn')}</button>
+      </div>
+      <div id="encExportToast" class="import-toast" aria-live="polite"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeEncExportModal(); });
+  document.getElementById('encExportPw1').focus();
+}
+
+function closeEncExportModal() {
+  const m = document.getElementById('encExportModal');
+  if (m) m.remove();
+}
+
+function showEncToast(id, msg, isError) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--green)';
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+async function doEncExport() {
+  const pw1 = document.getElementById('encExportPw1').value;
+  const pw2 = document.getElementById('encExportPw2').value;
+  if (!pw1) { showEncToast('encExportToast', t('encExportPwEmpty'), true); return; }
+  if (pw1 !== pw2) { showEncToast('encExportToast', t('encExportPwMismatch'), true); return; }
+  try {
+    const state = getStateForExport();
+    const json = JSON.stringify(state);
+    const encrypted = await encryptData(pw1, json);
+    const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'networth-backup-' + new Date().toISOString().slice(0, 10) + '.enc';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showEncToast('encExportToast', t('encExportSuccess'), false);
+    setTimeout(closeEncExportModal, 1500);
+  } catch (e) {
+    showEncToast('encExportToast', t('encImportFailed'), true);
+  }
+}
+
+function openEncImportModal() {
+  if (document.getElementById('encImportModal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'encImportModal';
+  modal.className = 'import-modal-overlay';
+  modal.innerHTML = `
+    <div class="import-modal">
+      <div class="import-modal-title">${t('encImportTitle')}</div>
+      <p class="import-modal-desc">${t('encImportDesc')}</p>
+      <div class="enc-field"><label>${t('encImportFileLabel')}</label><input type="file" id="encImportFile" accept=".enc" class="enc-file-input"></div>
+      <div class="enc-field"><label>${t('encImportPwLabel')}</label><input type="password" id="encImportPw" class="enc-input" autocomplete="current-password"></div>
+      <div class="import-modal-actions">
+        <button type="button" class="btn-import-cancel" onclick="closeEncImportModal()">${t('importCancel')}</button>
+        <button type="button" class="btn-import-apply" onclick="doEncImport()">${t('encImportBtn')}</button>
+      </div>
+      <div id="encImportToast" class="import-toast" aria-live="polite"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeEncImportModal(); });
+  document.getElementById('encImportFile').focus();
+}
+
+function closeEncImportModal() {
+  const m = document.getElementById('encImportModal');
+  if (m) m.remove();
+}
+
+async function doEncImport() {
+  const fileInput = document.getElementById('encImportFile');
+  const pw = document.getElementById('encImportPw').value;
+  if (!fileInput.files.length) { showEncToast('encImportToast', t('encImportNoFile'), true); return; }
+  if (!pw) { showEncToast('encImportToast', t('encExportPwEmpty'), true); return; }
+  try {
+    const arrayBuf = await fileInput.files[0].arrayBuffer();
+    const buf = new Uint8Array(arrayBuf);
+    const json = await decryptData(pw, buf);
+    const state = JSON.parse(json);
+    if (state.inputs) {
+      for (const [id, value] of Object.entries(state.inputs)) {
+        const el = document.getElementById(id);
+        if (el && value != null) el.value = String(value);
+      }
+    }
+    if (Array.isArray(state.accounts)) {
+      accounts = state.accounts;
+      acid = accounts.length ? Math.max(0, ...accounts.map(a => a.id)) : 0;
+    }
+    if (Array.isArray(state.events)) {
+      events = state.events;
+      eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
+    }
+    if (state.currentSc && SC[state.currentSc]) {
+      currentSc = state.currentSc;
+      document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
+      const activeTab = document.getElementById('tab-' + currentSc);
+      if (activeTab) activeTab.classList.add('active');
+    }
+    const showRetireOnlyEl = document.getElementById('showRetireOnly');
+    if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
+    renderAll();
+    saveState();
+    showEncToast('encImportToast', t('encImportSuccess'), false);
+    setTimeout(closeEncImportModal, 1500);
+  } catch (e) {
+    showEncToast('encImportToast', t('encImportFailed'), true);
   }
 }
 
