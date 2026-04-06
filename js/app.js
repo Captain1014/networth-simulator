@@ -47,10 +47,11 @@ const T = {
     mcHelp: '차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).' },
     table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', investColTitle: '비연금만 해당. 소진 = 이 항목 0 이하. 총자산에는 연금 포함.', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
     acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribStart: '납입 시작 나이', contribStartPlaceholder: '비우면 현재 나이', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
-    ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
+    ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', endAge: '종료 나이', endAgePlaceholder: '비우면 영구', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', expenseAdd: '💸 추가 지출 (누적)', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
     accType: { roth_label: 'Roth IRA', roth_desc: '세후 납입 → 인출 비과세', traditional_label: 'Traditional IRA / 401k', traditional_desc: '세전 납입 → 인출 시 과세', pension_kr_label: '한국 연금저축펀드', pension_kr_desc: '세전 납입 → 연금소득세 과세', taxable_label: '일반 과세 계좌', taxable_desc: '수익에 대해 매년 과세', account: '계좌' },
-    evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
+    evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'expense-add': '💸 추가지출', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
     exportCopy: '데이터 복사 (채팅에 붙여넣기)', exportToast: '클립보드에 복사됨. 채팅에 붙여넣어 전달하세요.', exportFailed: '복사 실패. 수동으로 복사해 주세요.',
+    importBtn: '데이터 불러오기', importTitle: '데이터 불러오기', importDesc: 'JSON 데이터를 붙여넣고 적용을 누르세요.', importApply: '적용', importCancel: '취소', importSuccess: '데이터가 적용되었습니다.', importFailed: 'JSON 형식이 올바르지 않습니다.',
   },
   en: {
     ageSfx: ' yrs', currencySfx: 'USD', currencySfxMonthly: 'USD/mo', currencySfxYr: 'USD/yr',
@@ -73,10 +74,11 @@ const T = {
     mcHelp: 'Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.' },
     table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', investColTitle: 'Non-pension only. Depleted = this bucket ≤ 0. Total includes retirement accounts.', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
     acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribStart: 'Contrib. start age', contribStartPlaceholder: 'Empty = current age', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
-    ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', income: '💹 Income change', expense: '💸 Expense change', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
+    ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', endAge: 'End age', endAgePlaceholder: 'Empty = permanent', income: '💹 Income change', expense: '💸 Expense change', expenseAdd: '💸 Extra recurring cost', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
     accType: { roth_label: 'Roth IRA', roth_desc: 'After-tax → tax-free withdrawal', traditional_label: 'Traditional IRA / 401k', traditional_desc: 'Pre-tax → taxed on withdrawal', pension_kr_label: 'Korea pension fund', pension_kr_desc: 'Pre-tax → pension tax on withdrawal', taxable_label: 'Taxable account', taxable_desc: 'Taxed annually on gains', account: 'Account' },
-    evBadge: { income: '💹 Income', expense: '💸 Expense', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
+    evBadge: { income: '💹 Income', expense: '💸 Expense', 'expense-add': '💸 Extra cost', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
     exportCopy: 'Copy data (paste in chat)', exportToast: 'Copied to clipboard. Paste in chat to share.', exportFailed: 'Copy failed. Copy manually.',
+    importBtn: 'Import data', importTitle: 'Import Data', importDesc: 'Paste JSON data and click Apply.', importApply: 'Apply', importCancel: 'Cancel', importSuccess: 'Data applied successfully.', importFailed: 'Invalid JSON format.',
   },
 };
 function t(key) {
@@ -229,6 +231,89 @@ function copyStateToClipboard() {
   });
 }
 
+function openImportModal() {
+  if (document.getElementById('importModal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'importModal';
+  modal.className = 'import-modal-overlay';
+  modal.innerHTML = `
+    <div class="import-modal">
+      <div class="import-modal-title">${t('importTitle')}</div>
+      <p class="import-modal-desc">${t('importDesc')}</p>
+      <textarea id="importTextarea" class="import-textarea" rows="10" placeholder='{"inputs":{...},"accounts":[...],"events":[...]}'></textarea>
+      <div class="import-modal-actions">
+        <button type="button" class="btn-import-cancel" onclick="closeImportModal()">${t('importCancel')}</button>
+        <button type="button" class="btn-import-apply" onclick="applyImportData()">${t('importApply')}</button>
+      </div>
+      <div id="importToast" class="import-toast" aria-live="polite"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeImportModal(); });
+  document.getElementById('importTextarea').focus();
+}
+
+function closeImportModal() {
+  const modal = document.getElementById('importModal');
+  if (modal) modal.remove();
+}
+
+function applyImportData() {
+  const raw = (document.getElementById('importTextarea')?.value || '').trim();
+  if (!raw) return;
+  // Strip markdown ```json ... ``` wrapper if present
+  let jsonStr = raw;
+  const mdMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (mdMatch) jsonStr = mdMatch[1].trim();
+  // Strip trailing markdown table if present
+  const tableIdx = jsonStr.lastIndexOf('}');
+  if (tableIdx !== -1) jsonStr = jsonStr.substring(0, tableIdx + 1);
+
+  try {
+    const state = JSON.parse(jsonStr);
+    if (state.inputs) {
+      for (const [id, value] of Object.entries(state.inputs)) {
+        const el = document.getElementById(id);
+        if (el && value != null) el.value = String(value);
+      }
+    }
+    if (Array.isArray(state.accounts)) {
+      accounts = state.accounts;
+      acid = accounts.length ? Math.max(0, ...accounts.map(a => a.id)) : 0;
+    }
+    if (Array.isArray(state.events)) {
+      events = state.events;
+      eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
+    }
+    if (state.currentSc && SC[state.currentSc]) {
+      currentSc = state.currentSc;
+      document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
+      const activeTab = document.getElementById('tab-' + currentSc);
+      if (activeTab) activeTab.classList.add('active');
+    }
+    const showRetireOnlyEl = document.getElementById('showRetireOnly');
+    if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
+
+    renderAll();
+    saveState();
+    closeImportModal();
+
+    const toast = document.getElementById('exportToast');
+    if (toast) {
+      toast.textContent = t('importSuccess');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+  } catch (e) {
+    const toast = document.getElementById('importToast');
+    if (toast) {
+      toast.textContent = t('importFailed');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  }
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -340,9 +425,19 @@ function simulate(sk = 'base', returnSequence = null) {
     retireDrawAge: parseInt(a.retireDrawAge) || 60,
   }));
 
+  // expense-add: each entry tracks its own current value and inflates independently
+  const extraExpenses = []; // { id, current, endAge }
+
   const rows = [];
   for (let age = startAge; age <= 100; age++) {
     const isRetired = age >= retireAge;
+
+    // Remove expired extra expenses
+    for (let i = extraExpenses.length - 1; i >= 0; i--) {
+      if (extraExpenses[i].endAge && age >= extraExpenses[i].endAge) {
+        extraExpenses.splice(i, 1);
+      }
+    }
 
     let lumpIn = 0, lumpOut = 0;
     const evDescs = [];
@@ -351,9 +446,16 @@ function simulate(sk = 'base', returnSequence = null) {
       const val = Number(parseMoney(ev.value));
       if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.income') }); }
       else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.expense') }); }
+      else if (ev.type === 'expense-add') {
+        extraExpenses.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
+        evDescs.push({ type: ev.type, label: ev.name || t('ev.expenseAdd') });
+      }
       else if (ev.type === 'lumpsum-out') { lumpOut += val; evDescs.push({ type: ev.type, label: ev.name || t('ev.lumpOut') }); }
       else if (ev.type === 'lumpsum-in') { lumpIn += val; evDescs.push({ type: ev.type, label: ev.name || t('ev.lumpIn') }); }
     }
+
+    // Total expense = base expense + all active extra expenses
+    const totalExpense = expense + extraExpenses.reduce((s, x) => s + x.current, 0);
 
     const mPayment = mortgage > 0 ? mortgage * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30 - (age - startAge)))) : 0;
     const slPayment = studentLoan > 0 ? studentLoan * slRate / (1 - Math.pow(1 + slRate, -Math.max(1, 10 - (age - startAge)))) : 0;
@@ -384,10 +486,10 @@ function simulate(sk = 'base', returnSequence = null) {
       totalAccBalancePre += ac.balance;
     }
 
-    const savings = isRetired ? 0 : (income - expense - totalDebt - totalAccContrib);
+    const savings = isRetired ? 0 : (income - totalExpense - totalDebt - totalAccContrib);
     const rr = returnSequence ? returnSequence[age - startAge] : rrBase;
     invest = invest * (1 + rr) + savings + lumpIn - lumpOut;
-    if (isRetired && expense > 0) {
+    if (isRetired && totalExpense > 0) {
       let totalAT = 0;
       const drawable = accState.filter(ac => age >= (ac.retireDrawAge || 60));
       for (const ac of drawable) {
@@ -397,9 +499,9 @@ function simulate(sk = 'base', returnSequence = null) {
       const investVal = Math.max(0, invest);
       const totalLiquidPre = investVal + totalAT;
       if (totalLiquidPre > 0) {
-        const drawFromInvest = (investVal / totalLiquidPre) * expense;
+        const drawFromInvest = (investVal / totalLiquidPre) * totalExpense;
         invest = Math.max(0, invest - drawFromInvest);
-        const remaining = expense - drawFromInvest;
+        const remaining = totalExpense - drawFromInvest;
         if (remaining > 0 && totalAT > 0) {
           for (const ac of drawable) {
             const t = ACC_TYPES[ac.type] || ACC_TYPES.roth;
@@ -415,7 +517,7 @@ function simulate(sk = 'base', returnSequence = null) {
           }
         }
       } else {
-        invest = Math.max(0, invest - expense);
+        invest = Math.max(0, invest - totalExpense);
       }
     }
 
@@ -427,10 +529,12 @@ function simulate(sk = 'base', returnSequence = null) {
 
     const totalLiquid = Math.max(0, invest) + totalAccAfterTax;
     const dispIncome = isRetired ? null : income;
-    const dispExpense = expense + (isRetired ? 0 : totalDebt);
-    const dispSavings = isRetired ? -expense : savings;
+    const dispExpense = totalExpense + (isRetired ? 0 : totalDebt);
+    const dispSavings = isRetired ? -totalExpense : savings;
 
+    // Inflate base expense and each extra expense independently
     expense = expense * (1 + inf);
+    for (const x of extraExpenses) x.current = x.current * (1 + inf);
     if (!isRetired) income = income * (1 + wageGrowth);
 
     rows.push({
@@ -1023,13 +1127,15 @@ function renderAccountList() {
 // ═══════════════════════════════════════════════════
 function addEvent(opts = {}) {
   const id = ++eid;
-  events.unshift({
+  const ev = {
     id,
     type: opts.type || 'income',
     name: opts.name || '',
     age: opts.age || (pN('currentAge') + 5),
     value: opts.value || '',
-  });
+  };
+  if (opts.endAge) ev.endAge = opts.endAge;
+  events.unshift(ev);
   renderEventList();
   renderAll();
 }
@@ -1080,6 +1186,7 @@ function renderEventList() {
   const BADGES = {
     income: ['ebadge-income', 'evBadge.income'],
     expense: ['ebadge-expense', 'evBadge.expense'],
+    'expense-add': ['ebadge-expense-add', 'evBadge.expense-add'],
     'lumpsum-out': ['ebadge-lumpsum-out', 'evBadge.lumpsum-out'],
     'lumpsum-in': ['ebadge-lumpsum-in', 'evBadge.lumpsum-in'],
   };
@@ -1104,6 +1211,7 @@ function renderEventList() {
           <select class="acc-sel" onchange="updateEvent(${ev.id},'type',this.value)">
             <option value="income" ${ev.type === 'income' ? 'selected' : ''}>${t('ev.income')}</option>
             <option value="expense" ${ev.type === 'expense' ? 'selected' : ''}>${t('ev.expense')}</option>
+            <option value="expense-add" ${ev.type === 'expense-add' ? 'selected' : ''}>${t('ev.expenseAdd')}</option>
             <option value="lumpsum-out" ${ev.type === 'lumpsum-out' ? 'selected' : ''}>${t('ev.lumpOut')}</option>
             <option value="lumpsum-in" ${ev.type === 'lumpsum-in' ? 'selected' : ''}>${t('ev.lumpIn')}</option>
           </select>
@@ -1119,6 +1227,12 @@ function renderEventList() {
             <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="${t('ev.placeholderAmount')}" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
           </div>
         </div>
+        ${ev.type === 'expense-add' ? `<div class="row2">
+          <div class="field"><label>${t('ev.endAge')}</label>
+            <div class="iw"><input class="acc-num" type="number" value="${ev.endAge || ''}" min="1" max="100" placeholder="${t('ev.endAgePlaceholder')}" onchange="updateEvent(${ev.id},'endAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
+          </div>
+          <div class="field"></div>
+        </div>` : ''}
         <div class="acc-foot"><button class="btn-del" onclick="removeEvent(${ev.id})">${t('ev.delete')}</button></div>
       </div>`;
     if (openIds.has(card.id)) card.classList.add('open');
