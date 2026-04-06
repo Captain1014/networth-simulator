@@ -28,8 +28,8 @@
     <button type="button" class="btn-import" onclick="openImportModal()" data-i18n="importBtn">데이터 불러오기</button>
     <span class="export-toast" id="exportToast" aria-live="polite"></span>
     <br>
-    <button type="button" class="btn-enc-export" onclick="openEncExportModal()" data-i18n="encExport">🔒 암호화 저장</button>
-    <button type="button" class="btn-enc-import" onclick="openEncImportModal()" data-i18n="encImport">🔒 암호화 불러오기</button>
+    <button type="button" class="btn-enc-export" onclick="openBackupSaveModal()" data-i18n="encSave">🔒 백업 생성</button>
+    <button type="button" class="btn-enc-import" onclick="openBackupRestoreModal()" data-i18n="encRestore">🔒 백업 복원</button>
   </div>
 </div>
 
@@ -237,6 +237,7 @@
 </div><!-- /right-panel -->
 </div><!-- /app -->
 
+<script src="js/backup.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

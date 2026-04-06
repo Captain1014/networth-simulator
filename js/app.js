@@ -52,9 +52,10 @@ const T = {
     evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'expense-add': '💸 추가지출', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
     exportCopy: '데이터 복사 (채팅에 붙여넣기)', exportToast: '클립보드에 복사됨. 채팅에 붙여넣어 전달하세요.', exportFailed: '복사 실패. 수동으로 복사해 주세요.',
     importBtn: '데이터 불러오기', importTitle: '데이터 불러오기', importDesc: 'JSON 데이터를 붙여넣고 적용을 누르세요.', importApply: '적용', importCancel: '취소', importSuccess: '데이터가 적용되었습니다.', importFailed: 'JSON 형식이 올바르지 않습니다.',
-    encExport: '🔒 암호화 저장', encImport: '🔒 암호화 불러오기',
-    encExportTitle: '암호화 저장', encExportDesc: '비밀번호를 설정하면 데이터가 암호화되어 파일로 저장됩니다.', encExportPwLabel: '비밀번호', encExportPwConfirm: '비밀번호 확인', encExportBtn: '암호화 저장', encExportSuccess: '암호화된 파일이 다운로드되었습니다.',  encExportPwMismatch: '비밀번호가 일치하지 않습니다.', encExportPwEmpty: '비밀번호를 입력하세요.',
-    encImportTitle: '암호화 불러오기', encImportDesc: '암호화된 파일을 선택하고 비밀번호를 입력하세요.', encImportFileLabel: '암호화 파일 (.enc)', encImportPwLabel: '비밀번호', encImportBtn: '복호화 & 적용', encImportSuccess: '데이터가 복호화되어 적용되었습니다.', encImportFailed: '복호화 실패 — 비밀번호가 틀리거나 파일이 손상되었습니다.', encImportNoFile: '파일을 선택하세요.',
+    encSave: '🔒 백업 생성', encRestore: '🔒 백업 복원',
+    encSaveTitle: '백업 생성', encSaveDesc: '비밀번호를 설정하면 현재 데이터를 암호화한 문자열이 생성됩니다. 이 문자열을 코드의 js/backup.js에 저장하세요.', encSaveBtn: '암호화 생성', encSaveCopy: '복사됨!',
+    encRestoreTitle: '백업 복원', encRestoreDesc: '비밀번호를 입력하면 코드에 저장된 백업 데이터가 복원됩니다.', encRestoreBtn: '복원', encRestoreSuccess: '백업이 복원되었습니다!', encRestoreFailed: '복원 실패 — 비밀번호가 틀리거나 백업이 없습니다.',
+    encPwLabel: '비밀번호', encPwEmpty: '비밀번호를 입력하세요.', encNoBackup: '저장된 백업이 없습니다. 먼저 백업을 생성하세요.',
   },
   en: {
     ageSfx: ' yrs', currencySfx: 'USD', currencySfxMonthly: 'USD/mo', currencySfxYr: 'USD/yr',
@@ -82,9 +83,10 @@ const T = {
     evBadge: { income: '💹 Income', expense: '💸 Expense', 'expense-add': '💸 Extra cost', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
     exportCopy: 'Copy data (paste in chat)', exportToast: 'Copied to clipboard. Paste in chat to share.', exportFailed: 'Copy failed. Copy manually.',
     importBtn: 'Import data', importTitle: 'Import Data', importDesc: 'Paste JSON data and click Apply.', importApply: 'Apply', importCancel: 'Cancel', importSuccess: 'Data applied successfully.', importFailed: 'Invalid JSON format.',
-    encExport: '🔒 Encrypted Save', encImport: '🔒 Encrypted Load',
-    encExportTitle: 'Encrypted Save', encExportDesc: 'Set a password to encrypt and download your data.', encExportPwLabel: 'Password', encExportPwConfirm: 'Confirm password', encExportBtn: 'Encrypt & Save', encExportSuccess: 'Encrypted file downloaded.', encExportPwMismatch: 'Passwords do not match.', encExportPwEmpty: 'Please enter a password.',
-    encImportTitle: 'Encrypted Load', encImportDesc: 'Select an encrypted file and enter your password.', encImportFileLabel: 'Encrypted file (.enc)', encImportPwLabel: 'Password', encImportBtn: 'Decrypt & Apply', encImportSuccess: 'Data decrypted and applied.', encImportFailed: 'Decryption failed — wrong password or corrupted file.', encImportNoFile: 'Please select a file.',
+    encSave: '🔒 Create Backup', encRestore: '🔒 Restore Backup',
+    encSaveTitle: 'Create Backup', encSaveDesc: 'Set a password to generate an encrypted backup string. Save this string in js/backup.js in the codebase.', encSaveBtn: 'Generate', encSaveCopy: 'Copied!',
+    encRestoreTitle: 'Restore Backup', encRestoreDesc: 'Enter your password to restore data saved in the codebase.', encRestoreBtn: 'Restore', encRestoreSuccess: 'Backup restored!', encRestoreFailed: 'Restore failed — wrong password or no backup found.',
+    encPwLabel: 'Password', encPwEmpty: 'Please enter a password.', encNoBackup: 'No backup found. Create a backup first.',
   },
 };
 function t(key) {
@@ -351,34 +353,6 @@ async function decryptData(password, buf) {
   return new TextDecoder().decode(plain);
 }
 
-function openEncExportModal() {
-  if (document.getElementById('encExportModal')) return;
-  const modal = document.createElement('div');
-  modal.id = 'encExportModal';
-  modal.className = 'import-modal-overlay';
-  modal.innerHTML = `
-    <div class="import-modal">
-      <div class="import-modal-title">${t('encExportTitle')}</div>
-      <p class="import-modal-desc">${t('encExportDesc')}</p>
-      <div class="enc-field"><label>${t('encExportPwLabel')}</label><input type="password" id="encExportPw1" class="enc-input" autocomplete="new-password"></div>
-      <div class="enc-field"><label>${t('encExportPwConfirm')}</label><input type="password" id="encExportPw2" class="enc-input" autocomplete="new-password"></div>
-      <div class="import-modal-actions">
-        <button type="button" class="btn-import-cancel" onclick="closeEncExportModal()">${t('importCancel')}</button>
-        <button type="button" class="btn-import-apply" onclick="doEncExport()">${t('encExportBtn')}</button>
-      </div>
-      <div id="encExportToast" class="import-toast" aria-live="polite"></div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeEncExportModal(); });
-  document.getElementById('encExportPw1').focus();
-}
-
-function closeEncExportModal() {
-  const m = document.getElementById('encExportModal');
-  if (m) m.remove();
-}
-
 function showEncToast(id, msg, isError) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -388,67 +362,90 @@ function showEncToast(id, msg, isError) {
   setTimeout(() => { el.style.opacity = '0'; }, 3000);
 }
 
-async function doEncExport() {
-  const pw1 = document.getElementById('encExportPw1').value;
-  const pw2 = document.getElementById('encExportPw2').value;
-  if (!pw1) { showEncToast('encExportToast', t('encExportPwEmpty'), true); return; }
-  if (pw1 !== pw2) { showEncToast('encExportToast', t('encExportPwMismatch'), true); return; }
-  try {
-    const state = getStateForExport();
-    const json = JSON.stringify(state);
-    const encrypted = await encryptData(pw1, json);
-    const blob = new Blob([encrypted], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'networth-backup-' + new Date().toISOString().slice(0, 10) + '.enc';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showEncToast('encExportToast', t('encExportSuccess'), false);
-    setTimeout(closeEncExportModal, 1500);
-  } catch (e) {
-    showEncToast('encExportToast', t('encImportFailed'), true);
-  }
-}
-
-function openEncImportModal() {
-  if (document.getElementById('encImportModal')) return;
+// ── Backup Save: encrypt current state → show base64 string to copy into js/backup.js ──
+function openBackupSaveModal() {
+  if (document.getElementById('encModal')) return;
   const modal = document.createElement('div');
-  modal.id = 'encImportModal';
+  modal.id = 'encModal';
   modal.className = 'import-modal-overlay';
   modal.innerHTML = `
     <div class="import-modal">
-      <div class="import-modal-title">${t('encImportTitle')}</div>
-      <p class="import-modal-desc">${t('encImportDesc')}</p>
-      <div class="enc-field"><label>${t('encImportFileLabel')}</label><input type="file" id="encImportFile" accept=".enc" class="enc-file-input"></div>
-      <div class="enc-field"><label>${t('encImportPwLabel')}</label><input type="password" id="encImportPw" class="enc-input" autocomplete="current-password"></div>
+      <div class="import-modal-title">${t('encSaveTitle')}</div>
+      <p class="import-modal-desc">${t('encSaveDesc')}</p>
+      <div class="enc-field"><label>${t('encPwLabel')}</label><input type="password" id="encPw" class="enc-input" autocomplete="new-password"></div>
       <div class="import-modal-actions">
-        <button type="button" class="btn-import-cancel" onclick="closeEncImportModal()">${t('importCancel')}</button>
-        <button type="button" class="btn-import-apply" onclick="doEncImport()">${t('encImportBtn')}</button>
+        <button type="button" class="btn-import-cancel" onclick="closeEncModal()">${t('importCancel')}</button>
+        <button type="button" class="btn-import-apply" onclick="doBackupSave()">${t('encSaveBtn')}</button>
       </div>
-      <div id="encImportToast" class="import-toast" aria-live="polite"></div>
+      <textarea id="encResult" class="import-textarea" style="display:none" readonly></textarea>
+      <div id="encToast" class="import-toast" aria-live="polite"></div>
     </div>
   `;
   document.body.appendChild(modal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeEncImportModal(); });
-  document.getElementById('encImportFile').focus();
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeEncModal(); });
+  document.getElementById('encPw').focus();
 }
 
-function closeEncImportModal() {
-  const m = document.getElementById('encImportModal');
+// ── Backup Restore: decrypt embedded ENCRYPTED_BACKUP with password ──
+function openBackupRestoreModal() {
+  if (typeof ENCRYPTED_BACKUP === 'undefined' || !ENCRYPTED_BACKUP) {
+    const toast = document.getElementById('exportToast');
+    if (toast) { toast.textContent = t('encNoBackup'); toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+    return;
+  }
+  if (document.getElementById('encModal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'encModal';
+  modal.className = 'import-modal-overlay';
+  modal.innerHTML = `
+    <div class="import-modal">
+      <div class="import-modal-title">${t('encRestoreTitle')}</div>
+      <p class="import-modal-desc">${t('encRestoreDesc')}</p>
+      <div class="enc-field"><label>${t('encPwLabel')}</label><input type="password" id="encPw" class="enc-input" autocomplete="current-password"></div>
+      <div class="import-modal-actions">
+        <button type="button" class="btn-import-cancel" onclick="closeEncModal()">${t('importCancel')}</button>
+        <button type="button" class="btn-import-apply" onclick="doBackupRestore()">${t('encRestoreBtn')}</button>
+      </div>
+      <div id="encToast" class="import-toast" aria-live="polite"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeEncModal(); });
+  document.getElementById('encPw').focus();
+}
+
+function closeEncModal() {
+  const m = document.getElementById('encModal');
   if (m) m.remove();
 }
 
-async function doEncImport() {
-  const fileInput = document.getElementById('encImportFile');
-  const pw = document.getElementById('encImportPw').value;
-  if (!fileInput.files.length) { showEncToast('encImportToast', t('encImportNoFile'), true); return; }
-  if (!pw) { showEncToast('encImportToast', t('encExportPwEmpty'), true); return; }
+async function doBackupSave() {
+  const pw = document.getElementById('encPw').value;
+  if (!pw) { showEncToast('encToast', t('encPwEmpty'), true); return; }
   try {
-    const arrayBuf = await fileInput.files[0].arrayBuffer();
-    const buf = new Uint8Array(arrayBuf);
+    const state = getStateForExport();
+    const json = JSON.stringify(state);
+    const encrypted = await encryptData(pw, json);
+    const b64 = btoa(String.fromCharCode(...encrypted));
+    const result = document.getElementById('encResult');
+    result.value = b64;
+    result.style.display = 'block';
+    result.select();
+    navigator.clipboard.writeText(b64).then(() => {
+      showEncToast('encToast', t('encSaveCopy'), false);
+    });
+  } catch (e) {
+    showEncToast('encToast', t('encRestoreFailed'), true);
+  }
+}
+
+async function doBackupRestore() {
+  const pw = document.getElementById('encPw').value;
+  if (!pw) { showEncToast('encToast', t('encPwEmpty'), true); return; }
+  try {
+    const bin = atob(ENCRYPTED_BACKUP);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
     const json = await decryptData(pw, buf);
     const state = JSON.parse(json);
     if (state.inputs) {
@@ -475,10 +472,10 @@ async function doEncImport() {
     if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
     renderAll();
     saveState();
-    showEncToast('encImportToast', t('encImportSuccess'), false);
-    setTimeout(closeEncImportModal, 1500);
+    showEncToast('encToast', t('encRestoreSuccess'), false);
+    setTimeout(closeEncModal, 1500);
   } catch (e) {
-    showEncToast('encImportToast', t('encImportFailed'), true);
+    showEncToast('encToast', t('encRestoreFailed'), true);
   }
 }
 
