@@ -1018,12 +1018,18 @@ function renderTable(rows) {
   const accCols = accounts.map(a => a.name || getAccTypeLabel(a.type));
   const ageSfx = t('summary.ageSuffix');
   const investColTitle = t('table.investColTitle') || '';
+
+  // Housing scenario columns when in housing mode
+  const hsMode = chartMode === 'housing' && housingResult && housingResult.scenarios.length > 0;
+  const hsCols = hsMode ? housingResult.scenarios : [];
+
   head.innerHTML = `<tr>
     <th>${t('table.age')}</th><th>${t('table.event')}</th>
     <th>${t('table.income')}</th><th>${t('table.expense')}</th><th>${t('table.savings')}</th>
     <th title="${investColTitle.replace(/"/g, '&quot;')}">${t('table.investCol')}</th>
     ${accCols.map(n => `<th>${n}</th>`).join('')}
     <th>${t('table.total')}</th>
+    ${hsCols.map((sc, i) => `<th style="color:${HS_COLORS[i]}">${sc.name}</th>`).join('')}
   </tr>`;
 
   body.innerHTML = '';
@@ -1056,6 +1062,17 @@ function renderTable(rows) {
     const tot = fmt(r.totalLiquid);
     const totC = r.totalLiquid > 0 ? 'pos' : 'neg';
 
+    // Housing scenario net worth cells
+    let hsCells = '';
+    if (hsMode) {
+      hsCells = hsCols.map((sc, i) => {
+        const hsRow = sc.rows.find(hr => hr.age === r.age);
+        if (!hsRow) return `<td style="color:var(--text3)">—</td>`;
+        const nw = hsRow.netWorth;
+        return `<td style="color:${HS_COLORS[i]};font-weight:600">${fmt(nw)}</td>`;
+      }).join('');
+    }
+
     tr.innerHTML = `
       <td>${ageCell}</td>
       <td>${evCell}</td>
@@ -1065,6 +1082,7 @@ function renderTable(rows) {
       <td class="${invC}">${inv}</td>
       ${accCells}
       <td class="${totC}" style="font-weight:600">${tot}</td>
+      ${hsCells}
     `;
     body.appendChild(tr);
   }
@@ -1117,6 +1135,11 @@ function render4pct(rows) {
 // ═══════════════════════════════════════════════════
 function renderAll() {
   const rows = simulate(currentSc);
+  if (chartMode === 'housing' && housingScenarios.length > 0) {
+    housingResult = simulateHousing();
+    updateHousingBreakevenLabel(housingResult);
+    renderHousingTable(housingResult);
+  }
   renderSummary(rows);
   renderChart(rows);
   renderTable(rows);
