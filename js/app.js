@@ -251,12 +251,73 @@ function buildYearlyTableText(rows, showRetireOnly) {
   return lines.join('\n');
 }
 
+function buildHousingTableText() {
+  if (!housingScenarios.length) return '';
+  const data = simulateHousing();
+  if (!data.scenarios.length) return '';
+
+  const names = data.scenarios.map(s => s.name);
+  const hdr = ['', ...names];
+  const sep = hdr.map(() => '---');
+  const lines = [];
+  lines.push('## Housing Scenario Comparison');
+  lines.push('');
+  lines.push('| ' + hdr.join(' | ') + ' |');
+  lines.push('| ' + sep.join(' | ') + ' |');
+
+  // Initial outlay
+  const initials = data.scenarios.map(sc => {
+    const hs = housingScenarios.find(h => h.id === sc.id);
+    if (!hs) return '—';
+    if (hs.type === 'buy') return fmt(parseMoney(hs.purchasePrice) * (1 - (parseFloat(hs.ltvRatio) || 0) / 100));
+    if (hs.type === 'jeonse') return fmt(parseMoney(hs.deposit));
+    return fmt(parseMoney(hs.rentDeposit) || 0);
+  });
+  lines.push('| Initial outlay | ' + initials.join(' | ') + ' |');
+
+  // Loan
+  if (data.scenarios.some(s => s.type === 'buy')) {
+    const loans = data.scenarios.map(sc => {
+      const hs = housingScenarios.find(h => h.id === sc.id);
+      if (hs && hs.type === 'buy') return fmt(parseMoney(hs.purchasePrice) * (parseFloat(hs.ltvRatio) || 0) / 100);
+      return '—';
+    });
+    lines.push('| Loan | ' + loans.join(' | ') + ' |');
+  }
+
+  // Net worth at checkpoints
+  const hsStartAge = Math.max(...housingScenarios.map(h => h.startAge || 50));
+  const checkpoints = [hsStartAge, hsStartAge + 10, hsStartAge + 20, hsStartAge + 30].filter(a => a <= 100);
+  const ageSfx = t('summary.ageSuffix');
+  for (const cp of checkpoints) {
+    const vals = data.scenarios.map(sc => {
+      const row = sc.rows.find(r => r.age === cp);
+      return row ? fmt(row.netWorth) : '—';
+    });
+    lines.push('| ' + cp + ageSfx + ' Net worth | ' + vals.join(' | ') + ' |');
+  }
+
+  // Cumulative cost
+  const costs = data.scenarios.map(sc => {
+    const last = sc.rows[sc.rows.length - 1];
+    return last ? fmt(last.cumulativeCost) : '—';
+  });
+  lines.push('| Cumulative cost | ' + costs.join(' | ') + ' |');
+
+  // Breakeven
+  if (data.breakeven.buyVsRent) lines.push('| Breakeven (buy vs rent) | ' + data.breakeven.buyVsRent + ageSfx + ' | | |');
+  if (data.breakeven.buyVsJeonse) lines.push('| Breakeven (buy vs jeonse) | ' + data.breakeven.buyVsJeonse + ageSfx + ' | | |');
+
+  return lines.join('\n');
+}
+
 function copyStateToClipboard() {
   const state = getStateForExport();
   const json = JSON.stringify(state, null, 2);
   const rows = simulate(currentSc);
   const tableText = buildYearlyTableText(rows, state.showRetireOnly);
-  const wrap = '```json\n' + json + '\n```' + (tableText ? '\n\n' + tableText : '');
+  const housingText = buildHousingTableText();
+  const wrap = '```json\n' + json + '\n```' + (tableText ? '\n\n' + tableText : '') + (housingText ? '\n\n' + housingText : '');
   navigator.clipboard.writeText(wrap).then(() => {
     const el = document.getElementById('exportToast');
     if (el) {
