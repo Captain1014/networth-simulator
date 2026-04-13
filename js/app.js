@@ -759,6 +759,16 @@ function simulate(sk = 'base', returnSequence = null) {
       totalAccBalancePre += ac.balance;
     }
 
+    // 목돈 유입이 특정 계좌 해지·이전을 의미할 때: 해당 계좌 잔액을 0으로 (예: ISA 전액 해지 후 invest로 편입)
+    for (const ev of events) {
+      if (parseInt(ev.age, 10) !== age) continue;
+      if (ev.type !== 'lumpsum-in' || ev.drainAccountId == null || String(ev.drainAccountId).trim() === '') continue;
+      const did = parseInt(ev.drainAccountId, 10);
+      if (isNaN(did)) continue;
+      const tac = accState.find(a => a.id === did);
+      if (tac) tac.balance = 0;
+    }
+
     const savings = isRetired ? 0 : (income - totalExpense - totalDebt - totalAccContrib);
     const rr = returnSequence ? returnSequence[age - startAge] : rrBase;
     invest = invest * (1 + rr) + savings + lumpIn - lumpOut;
