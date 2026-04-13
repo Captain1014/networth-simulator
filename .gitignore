@@ -4,5 +4,22 @@ node_modules/
 input-evaluation.md
 i18n-guide.md
 
-# Personal scenario exports (import via app UI); do not commit
+# --- Personal / secrets (never commit) ---
 scenario-import.json
+*-personal.json
+*-private.json
+.env
+.env.*
+!.env.example
+*.pem
+id_rsa
+id_rsa.*
+*.key
+
+# Optional: keep a local-only backup script with real ciphertext (use instead of editing backup.js)
+js/backup.local.js
+
+# --- Local tool / agent state (not part of the app) ---
+.claude/
+.omc/
+.bkit/
