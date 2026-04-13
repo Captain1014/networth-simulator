@@ -3,3 +3,6 @@
 node_modules/
 input-evaluation.md
 i18n-guide.md
+
+# Personal scenario exports (import via app UI); do not commit
+scenario-import.json
