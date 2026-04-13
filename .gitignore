@@ -16,7 +16,8 @@ id_rsa
 id_rsa.*
 *.key
 
-# Optional: keep a local-only backup script with real ciphertext (use instead of editing backup.js)
+# Encrypted backup ciphertext (copy from backup.example.js, then paste string; or use backup.local.js)
+js/backup.js
 js/backup.local.js
 
 # --- Local tool / agent state (not part of the app) ---

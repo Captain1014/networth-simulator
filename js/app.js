@@ -53,7 +53,7 @@ const T = {
     exportCopy: '데이터 복사 (채팅에 붙여넣기)', exportToast: '클립보드에 복사됨. 채팅에 붙여넣어 전달하세요.', exportFailed: '복사 실패. 수동으로 복사해 주세요.',
     importBtn: '데이터 불러오기', importTitle: '데이터 불러오기', importDesc: 'JSON 데이터를 붙여넣고 적용을 누르세요.', importApply: '적용', importCancel: '취소', importSuccess: '데이터가 적용되었습니다.', importFailed: 'JSON 형식이 올바르지 않습니다.',
     encSave: '🔒 백업 생성', encRestore: '🔒 백업 복원',
-    encSaveTitle: '백업 생성', encSaveDesc: '비밀번호를 설정하면 현재 데이터를 암호화한 문자열이 생성됩니다. 이 문자열을 코드의 js/backup.js에 저장하세요.', encSaveBtn: '암호화 생성', encSaveCopy: '복사됨!',
+    encSaveTitle: '백업 생성', encSaveDesc: '비밀번호를 설정하면 현재 데이터를 암호화한 문자열이 생성됩니다. js/backup.example.js를 복사해 js/backup.js로 두고 문자열을 붙여 넣으세요(js/backup.js는 git에 올리지 마세요).', encSaveBtn: '암호화 생성', encSaveCopy: '복사됨!',
     encRestoreTitle: '백업 복원', encRestoreDesc: '비밀번호를 입력하면 코드에 저장된 백업 데이터가 복원됩니다.', encRestoreBtn: '복원', encRestoreSuccess: '백업이 복원되었습니다!', encRestoreFailed: '복원 실패 — 비밀번호가 틀리거나 백업이 없습니다.',
     encPwLabel: '비밀번호', encPwEmpty: '비밀번호를 입력하세요.', encNoBackup: '저장된 백업이 없습니다. 먼저 백업을 생성하세요.',
     housing: {
@@ -99,7 +99,7 @@ const T = {
     exportCopy: 'Copy data (paste in chat)', exportToast: 'Copied to clipboard. Paste in chat to share.', exportFailed: 'Copy failed. Copy manually.',
     importBtn: 'Import data', importTitle: 'Import Data', importDesc: 'Paste JSON data and click Apply.', importApply: 'Apply', importCancel: 'Cancel', importSuccess: 'Data applied successfully.', importFailed: 'Invalid JSON format.',
     encSave: '🔒 Create Backup', encRestore: '🔒 Restore Backup',
-    encSaveTitle: 'Create Backup', encSaveDesc: 'Set a password to generate an encrypted backup string. Save this string in js/backup.js in the codebase.', encSaveBtn: 'Generate', encSaveCopy: 'Copied!',
+    encSaveTitle: 'Create Backup', encSaveDesc: 'Set a password to generate an encrypted backup string. Copy js/backup.example.js to js/backup.js and paste the string there (keep js/backup.js out of git).', encSaveBtn: 'Generate', encSaveCopy: 'Copied!',
     encRestoreTitle: 'Restore Backup', encRestoreDesc: 'Enter your password to restore data saved in the codebase.', encRestoreBtn: 'Restore', encRestoreSuccess: 'Backup restored!', encRestoreFailed: 'Restore failed — wrong password or no backup found.',
     encPwLabel: 'Password', encPwEmpty: 'Please enter a password.', encNoBackup: 'No backup found. Create a backup first.',
     housing: {
