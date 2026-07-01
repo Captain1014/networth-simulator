@@ -150,6 +150,23 @@ body {
   outline: none;
   border-color: #a78bfa;
 }
+.enc-save-mode .enc-mode-label {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 2px;
+}
+.enc-mode-opt {
+  display: inline-block;
+  margin-right: 14px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+.enc-short-code-input {
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  font-size: 15px;
+}
 .enc-file-input {
   width: 100%;
   padding: 8px 0;
@@ -610,6 +627,7 @@ body {
   flex-shrink: 0;
 }
 .ebadge-income { background: rgba(106, 191, 123, 0.18); color: var(--green); }
+.ebadge-income-add { background: rgba(106, 191, 123, 0.28); color: #4a9f5c; }
 .ebadge-expense { background: rgba(224, 96, 96, 0.18); color: var(--red); }
 .ebadge-expense-add { background: rgba(224, 140, 96, 0.18); color: #e08c60; }
 .ebadge-lumpsum-out { background: rgba(91, 155, 213, 0.18); color: var(--blue); }

@@ -47,15 +47,22 @@ const T = {
     mcHelp: '차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).' },
     table: { title: '연도별 자산 변화', retireOnly: '은퇴 후만', age: '나이', event: '이벤트', income: '연 수입', expense: '연 지출', savings: '순저축', investCol: '투자/저축자산', investColTitle: '비연금만 해당. 소진 = 이 항목 0 이하. 총자산에는 연금 포함.', total: '총자산(세후)', retireTag: '은퇴', depleted: '소진' },
     acc: { type: '계좌 종류', nickname: '계좌 별명', balance: '현재 잔액', rate: '예상 수익률', contribNote: '납입 (둘 중 하나만 입력)', contribSelf: '본인 납입 (연 고정액)', contribSelfPct: '본인 납입 (수입의 %)', empMode: '회사 납입 방식', empFixed: '연 고정액', empPct: '연봉의 %', empMatch: '매칭 (X% match up to Y%)', empAmount: '회사 납입 (연 고정액)', empPctLabel: '회사 납입 (연봉의 %)', matchRate: '매칭률 (회사가 내 납입의 몇 %)', matchCap: '한도 (연봉의 몇 %까지만 매칭)', contribStart: '납입 시작 나이', contribStartPlaceholder: '비우면 현재 나이', contribEnd: '납입 종료 나이', drawAge: '인출 시작 나이', withdrawTax: '인출 시 세율', contribEndPlaceholder: '비우면 은퇴 나이', delete: '🗑 삭제', placeholderName: '예: 미국 Roth IRA, 한국 연금저축' },
-    ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', endAge: '종료 나이', endAgePlaceholder: '비우면 영구', income: '💹 연 수입 변경', expense: '💸 연 지출 변경', expenseAdd: '💸 추가 지출 (누적)', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
+    ev: { kind: '이벤트 종류', name: '이름', age: '발생 나이', amount: '금액', endAge: '종료 나이', endAgePlaceholder: '비우면 영구', income: '💹 연 수입 변경', incomeAdd: '💰 추가 수입 (누적)', expense: '💸 연 지출 변경', expenseAdd: '💸 추가 지출 (누적)', lumpOut: '🏠 목돈 지출', lumpIn: '🎁 목돈 유입', placeholderName: '예: 캐나다 이민, 집 구매...', placeholderAmount: '예: 150000 또는 150k', noName: '이름 없음', delete: '🗑 삭제' },
     accType: { roth_label: 'Roth IRA', roth_desc: '세후 납입 → 인출 비과세', traditional_label: 'Traditional IRA / 401k', traditional_desc: '세전 납입 → 인출 시 과세', pension_kr_label: '한국 연금저축펀드', pension_kr_desc: '세전 납입 → 연금소득세 과세', taxable_label: '일반 과세 계좌', taxable_desc: '수익에 대해 매년 과세', account: '계좌' },
-    evBadge: { income: '💹 수입변경', expense: '💸 지출변경', 'expense-add': '💸 추가지출', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
+    evBadge: { income: '💹 수입변경', 'income-add': '💰 추가수입', expense: '💸 지출변경', 'expense-add': '💸 추가지출', 'lumpsum-out': '🏠 목돈지출', 'lumpsum-in': '🎁 목돈유입', default: '이벤트' },
     exportCopy: '데이터 복사 (채팅에 붙여넣기)', exportToast: '클립보드에 복사됨. 채팅에 붙여넣어 전달하세요.', exportFailed: '복사 실패. 수동으로 복사해 주세요.',
     importBtn: '데이터 불러오기', importTitle: '데이터 불러오기', importDesc: 'JSON 데이터를 붙여넣고 적용을 누르세요.', importApply: '적용', importCancel: '취소', importSuccess: '데이터가 적용되었습니다.', importFailed: 'JSON 형식이 올바르지 않습니다.',
     encSave: '🔒 백업 생성', encRestore: '🔒 백업 복원',
-    encSaveTitle: '백업 생성', encSaveDesc: '비밀번호를 설정하면 현재 데이터를 암호화한 문자열이 생성됩니다. js/backup.example.js를 복사해 js/backup.js로 두고 문자열을 붙여 넣으세요(js/backup.js는 git에 올리지 마세요).', encSaveBtn: '암호화 생성', encSaveCopy: '복사됨!',
-    encRestoreTitle: '백업 복원', encRestoreDesc: '비밀번호를 입력하면 코드에 저장된 백업 데이터가 복원됩니다.', encRestoreBtn: '복원', encRestoreSuccess: '백업이 복원되었습니다!', encRestoreFailed: '복원 실패 — 비밀번호가 틀리거나 백업이 없습니다.',
-    encPwLabel: '비밀번호', encPwEmpty: '비밀번호를 입력하세요.', encNoBackup: '저장된 백업이 없습니다. 먼저 백업을 생성하세요.',
+    encSaveTitle: '백업 생성', encSaveDesc: '비밀번호는 그대로 두고, 「짧은 코드」는 릴레이 URL이 있을 때만 선택할 수 있습니다(릴레이에는 암호문만 저장). 「긴 토큰」은 서버 없이 한 줄로 복사해 옮길 수 있습니다. gzip으로 긴 토큰도 이전보다 짧아집니다.', encSaveBtn: '암호화 생성', encSaveCopy: '긴 토큰이 클립보드에 복사되었습니다.',
+    encRelayUrlLabel: '백업 릴레이 URL', encRelayUrlHint: '짧은 코드를 쓰려면 backup-relay 폴더의 Worker를 배포한 뒤 여기에 https://…workers.dev 주소를 입력하세요. 노트북·휴대폰에 같은 URL을 넣어야 합니다.',
+    encSaveModeLabel: '형식', encSaveModeShort: '짧은 코드 (48시간, 릴레이)', encSaveModeLong: '긴 오프라인 토큰',
+    encSaveTokenLabel: '긴 백업 토큰', encCopyTokenBtn: '긴 토큰 다시 복사', encShareTokenBtn: '공유…',
+    encShortCodeLabel: '짧은 코드', encCopyShortCodeBtn: '코드 다시 복사', encShortCodeCopy: '짧은 코드가 클립보드에 복사되었습니다.',
+    encRelayRequired: '짧은 코드를 쓰려면 릴레이 URL을 입력하세요.', encRelayStoreFailed: '릴레이에 저장하지 못했습니다. URL·CORS·네트워크를 확인하세요.', encRelayFetchFailed: '릴레이에서 코드를 가져오지 못했습니다.',
+    encRestoreTitle: '백업 복원', encRestoreDesc: '짧은 코드이면 위에 같은 릴레이 URL을 입력한 뒤 코드와 비밀번호를 넣으세요. 긴 토큰이면 토큰만 붙여 넣으면 됩니다. 둘 다 비우면 js/backup.js에 넣어 둔 백업만 사용합니다.', encRestoreBtn: '복원', encRestoreSuccess: '백업이 복원되었습니다!', encRestoreFailed: '복원 실패 — 비밀번호가 틀리거나 데이터가 잘못되었습니다.',
+    encTokenLabel: '코드 또는 긴 토큰', encTokenPlaceholder: '예: ab12-cd34-ef56 또는 긴 토큰 전체…',
+    encPwLabel: '비밀번호', encPwEmpty: '비밀번호를 입력하세요.', encNoBackupOrToken: '백업 토큰을 붙여 넣거나, 이 기기용으로 js/backup.js에 백업을 넣어 두세요.',
+    encClipboardPaste: '클립보드에서 붙여넣기', encClipboardPasted: '붙여넣었습니다.', encClipboardUnavailable: '클립보드를 읽을 수 없습니다. 직접 붙여 넣어 주세요.',
     housing: {
       modalTitle: '🏠 주거 시나리오 비교', modalDesc: '최대 3개 시나리오를 설정하고 장기 순자산을 비교하세요.',
       add: '+ 시나리오 추가', run: '비교 실행', editScenarios: '시나리오 설정', scenario: '시나리오', modeHousing: '주거 비교',
@@ -93,15 +100,22 @@ const T = {
     mcHelp: 'Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.' },
     table: { title: 'Yearly asset change', retireOnly: 'Retirement only', age: 'Age', event: 'Event', income: 'Income', expense: 'Expense', savings: 'Savings', investCol: 'Investment', investColTitle: 'Non-pension only. Depleted = this bucket ≤ 0. Total includes retirement accounts.', total: 'Total (after tax)', retireTag: 'Retire', depleted: 'Depleted' },
     acc: { type: 'Account type', nickname: 'Nickname', balance: 'Current balance', rate: 'Expected return', contribNote: 'Contributions (choose one)', contribSelf: 'Personal (annual)', contribSelfPct: 'Personal (% of income)', empMode: 'Employer contribution', empFixed: 'Annual fixed', empPct: '% of salary', empMatch: 'Match (X% up to Y%)', empAmount: 'Employer (annual)', empPctLabel: 'Employer (% of salary)', matchRate: 'Match rate (%)', matchCap: 'Cap (% of salary)', contribStart: 'Contrib. start age', contribStartPlaceholder: 'Empty = current age', contribEnd: 'Contrib. end age', drawAge: 'Withdraw start age', withdrawTax: 'Withdraw tax rate', contribEndPlaceholder: 'Empty = retirement age', delete: '🗑 Delete', placeholderName: 'e.g. US Roth IRA' },
-    ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', endAge: 'End age', endAgePlaceholder: 'Empty = permanent', income: '💹 Income change', expense: '💸 Expense change', expenseAdd: '💸 Extra recurring cost', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
+    ev: { kind: 'Event type', name: 'Name', age: 'Age', amount: 'Amount', endAge: 'End age', endAgePlaceholder: 'Empty = permanent', income: '💹 Income change', incomeAdd: '💰 Additional income', expense: '💸 Expense change', expenseAdd: '💸 Extra recurring cost', lumpOut: '🏠 Lump sum out', lumpIn: '🎁 Lump sum in', placeholderName: 'e.g. House purchase...', placeholderAmount: 'e.g. 150000 or 150k', noName: 'Unnamed', delete: '🗑 Delete' },
     accType: { roth_label: 'Roth IRA', roth_desc: 'After-tax → tax-free withdrawal', traditional_label: 'Traditional IRA / 401k', traditional_desc: 'Pre-tax → taxed on withdrawal', pension_kr_label: 'Korea pension fund', pension_kr_desc: 'Pre-tax → pension tax on withdrawal', taxable_label: 'Taxable account', taxable_desc: 'Taxed annually on gains', account: 'Account' },
-    evBadge: { income: '💹 Income', expense: '💸 Expense', 'expense-add': '💸 Extra cost', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
+    evBadge: { income: '💹 Income', 'income-add': '💰 Extra income', expense: '💸 Expense', 'expense-add': '💸 Extra cost', 'lumpsum-out': '🏠 Lump out', 'lumpsum-in': '🎁 Lump in', default: 'Event' },
     exportCopy: 'Copy data (paste in chat)', exportToast: 'Copied to clipboard. Paste in chat to share.', exportFailed: 'Copy failed. Copy manually.',
     importBtn: 'Import data', importTitle: 'Import Data', importDesc: 'Paste JSON data and click Apply.', importApply: 'Apply', importCancel: 'Cancel', importSuccess: 'Data applied successfully.', importFailed: 'Invalid JSON format.',
     encSave: '🔒 Create Backup', encRestore: '🔒 Restore Backup',
-    encSaveTitle: 'Create Backup', encSaveDesc: 'Set a password to generate an encrypted backup string. Copy js/backup.example.js to js/backup.js and paste the string there (keep js/backup.js out of git).', encSaveBtn: 'Generate', encSaveCopy: 'Copied!',
-    encRestoreTitle: 'Restore Backup', encRestoreDesc: 'Enter your password to restore data saved in the codebase.', encRestoreBtn: 'Restore', encRestoreSuccess: 'Backup restored!', encRestoreFailed: 'Restore failed — wrong password or no backup found.',
-    encPwLabel: 'Password', encPwEmpty: 'Please enter a password.', encNoBackup: 'No backup found. Create a backup first.',
+    encSaveTitle: 'Create Backup', encSaveDesc: 'Pick a password, then choose Short code (needs relay URL below — only ciphertext is stored) or Long offline token (no server). Payloads are gzip-compressed before encryption, so the long token is smaller than before.', encSaveBtn: 'Generate', encSaveCopy: 'Long token copied to clipboard.',
+    encRelayUrlLabel: 'Backup relay URL', encRelayUrlHint: 'For short codes, deploy the Worker in the backup-relay folder and paste its https://….workers.dev URL here. Use the same URL on laptop and phone.',
+    encSaveModeLabel: 'Format', encSaveModeShort: 'Short code (48h, relay)', encSaveModeLong: 'Long offline token',
+    encSaveTokenLabel: 'Long backup token', encCopyTokenBtn: 'Copy long token again', encShareTokenBtn: 'Share…',
+    encShortCodeLabel: 'Short code', encCopyShortCodeBtn: 'Copy code again', encShortCodeCopy: 'Short code copied to clipboard.',
+    encRelayRequired: 'Enter the relay URL to use short codes.', encRelayStoreFailed: 'Could not store on relay. Check URL, CORS, and network.', encRelayFetchFailed: 'Could not fetch backup from relay.',
+    encRestoreTitle: 'Restore Backup', encRestoreDesc: 'For a short code, enter the same relay URL, paste the code, then your password. For a long token, paste the token only. Leave both empty to use an embedded backup in js/backup.js.', encRestoreBtn: 'Restore', encRestoreSuccess: 'Backup restored!', encRestoreFailed: 'Restore failed — wrong password or bad data.',
+    encTokenLabel: 'Code or long token', encTokenPlaceholder: 'e.g. ab12-cd34-ef56 or the full long token…',
+    encPwLabel: 'Password', encPwEmpty: 'Please enter a password.', encNoBackupOrToken: 'Paste your backup token, or add one to js/backup.js for this device.',
+    encClipboardPaste: 'Paste from clipboard', encClipboardPasted: 'Pasted.', encClipboardUnavailable: 'Could not read clipboard. Paste manually.',
     housing: {
       modalTitle: '🏠 Housing Scenario Comparison', modalDesc: 'Set up to 3 scenarios and compare long-term net worth.',
       add: '+ Add scenario', run: 'Run comparison', editScenarios: 'Edit scenarios', scenario: 'Scenario', modeHousing: 'Housing',
@@ -436,7 +450,8 @@ async function encryptData(password, plaintext) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt);
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+  const data = typeof plaintext === 'string' ? enc.encode(plaintext) : plaintext;
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
   const buf = new Uint8Array(salt.length + iv.length + ct.byteLength);
   buf.set(salt, 0);
   buf.set(iv, salt.length);
@@ -450,7 +465,112 @@ async function decryptData(password, buf) {
   const ct = buf.slice(28);
   const key = await deriveKey(password, salt);
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-  return new TextDecoder().decode(plain);
+  return new Uint8Array(plain);
+}
+
+/** Base64 from Uint8Array without stack limits from spread on large buffers. */
+function uint8ToBase64(u8) {
+  const chunk = 0x8000;
+  let binary = '';
+  for (let i = 0; i < u8.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, u8.subarray(i, Math.min(i + chunk, u8.length)));
+  }
+  return btoa(binary);
+}
+
+async function gzipCompressUtf8(jsonString) {
+  if (typeof CompressionStream === 'undefined') {
+    return new TextEncoder().encode(jsonString);
+  }
+  const enc = new TextEncoder();
+  const body = enc.encode(jsonString);
+  const stream = new Response(body).body.pipeThrough(new CompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function gzipDecompressToUtf8(bytes) {
+  if (typeof DecompressionStream === 'undefined') {
+    throw new Error('gzip unsupported');
+  }
+  const stream = new Response(bytes).body.pipeThrough(new DecompressionStream('gzip'));
+  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+}
+
+async function backupCipherToState(password, cipherBuf) {
+  const plain = await decryptData(password, cipherBuf);
+  let json;
+  if (plain.length >= 2 && plain[0] === 0x1f && plain[1] === 0x8b) {
+    json = await gzipDecompressToUtf8(plain);
+  } else {
+    json = new TextDecoder().decode(plain);
+  }
+  return JSON.parse(json);
+}
+
+const BACKUP_RELAY_LS = 'backupRelayUrl';
+
+function getBackupRelayBase() {
+  try {
+    const u = localStorage.getItem(BACKUP_RELAY_LS);
+    if (u && u.trim()) return u.trim().replace(/\/+$/, '');
+  } catch (_) {}
+  if (typeof window !== 'undefined' && window.BACKUP_RELAY_BASE) {
+    return String(window.BACKUP_RELAY_BASE).trim().replace(/\/+$/, '');
+  }
+  return '';
+}
+
+function persistBackupRelayFromField(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  try {
+    localStorage.setItem(BACKUP_RELAY_LS, el.value.trim());
+  } catch (_) {}
+}
+
+function relayUrlFromSaveModal() {
+  const el = document.getElementById('encRelayUrl');
+  return el ? el.value.trim().replace(/\/+$/, '') : '';
+}
+
+function relayHasConfiguredUrl() {
+  return !!relayUrlFromSaveModal() || !!getBackupRelayBase();
+}
+
+async function relayStoreBlob(base, blobB64) {
+  const url = `${base.replace(/\/+$/, '')}/v1/store`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ blob: blobB64 }),
+  });
+  if (!r.ok) throw new Error('relay_store');
+  const j = await r.json();
+  if (!j || typeof j.id !== 'string') throw new Error('relay_store');
+  return j.id;
+}
+
+async function relayFetchBlob(base, id) {
+  const clean = String(id).trim().replace(/\s/g, '');
+  const url = `${base.replace(/\/+$/, '')}/v1/${encodeURIComponent(clean)}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('relay_fetch');
+  const j = await r.json();
+  if (!j || typeof j.blob !== 'string') throw new Error('relay_fetch');
+  return j.blob;
+}
+
+function isShortBackupCode(s) {
+  return /^[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}$/i.test(String(s).trim());
+}
+
+function updateEncSaveModeRadios() {
+  const shortRadio = document.querySelector('input[name="encSaveMode"][value="short"]');
+  const longRadio = document.querySelector('input[name="encSaveMode"][value="long"]');
+  if (!shortRadio || !longRadio) return;
+  const has = relayHasConfiguredUrl();
+  shortRadio.disabled = !has;
+  if (!has && shortRadio.checked) longRadio.checked = true;
 }
 
 function showEncToast(id, msg, isError) {
@@ -462,7 +582,7 @@ function showEncToast(id, msg, isError) {
   setTimeout(() => { el.style.opacity = '0'; }, 3000);
 }
 
-// ── Backup Save: encrypt current state → show base64 string to copy into js/backup.js ──
+// ── Backup Save: short relay code or long offline token (gzip + AES-GCM) ──
 function openBackupSaveModal() {
   if (document.getElementById('encModal')) return;
   const modal = document.createElement('div');
@@ -472,27 +592,87 @@ function openBackupSaveModal() {
     <div class="import-modal">
       <div class="import-modal-title">${t('encSaveTitle')}</div>
       <p class="import-modal-desc">${t('encSaveDesc')}</p>
+      <div class="enc-field"><label for="encRelayUrl">${t('encRelayUrlLabel')}</label>
+        <input type="url" id="encRelayUrl" class="enc-input" placeholder="https://your-worker.workers.dev" autocomplete="off"></div>
+      <p class="import-modal-desc" style="font-size:0.88em;margin-top:4px">${t('encRelayUrlHint')}</p>
+      <div class="enc-field enc-save-mode"><span class="enc-mode-label">${t('encSaveModeLabel')}</span>
+        <label class="enc-mode-opt"><input type="radio" name="encSaveMode" value="short"> ${t('encSaveModeShort')}</label>
+        <label class="enc-mode-opt"><input type="radio" name="encSaveMode" value="long" checked> ${t('encSaveModeLong')}</label>
+      </div>
       <div class="enc-field"><label>${t('encPwLabel')}</label><input type="password" id="encPw" class="enc-input" autocomplete="new-password"></div>
       <div class="import-modal-actions">
         <button type="button" class="btn-import-cancel" onclick="closeEncModal()">${t('importCancel')}</button>
         <button type="button" class="btn-import-apply" onclick="doBackupSave()">${t('encSaveBtn')}</button>
       </div>
-      <textarea id="encResult" class="import-textarea" style="display:none" readonly></textarea>
+      <div id="encSaveResultShort" style="display:none;margin-top:12px">
+        <div class="enc-field"><label>${t('encShortCodeLabel')}</label>
+          <input type="text" id="encShortCode" class="enc-input enc-short-code-input" readonly></div>
+        <div class="import-modal-actions">
+          <button type="button" class="btn-import-cancel" onclick="copyBackupTokenAgain()">${t('encCopyShortCodeBtn')}</button>
+          <button type="button" class="btn-import-apply" id="encShareBtnShort" style="display:none" onclick="shareBackupToken()">${t('encShareTokenBtn')}</button>
+        </div>
+      </div>
+      <div id="encSaveResultLong" style="display:none;margin-top:12px">
+        <div class="enc-field"><label>${t('encSaveTokenLabel')}</label><textarea id="encResult" class="import-textarea" readonly rows="8"></textarea></div>
+        <div class="import-modal-actions">
+          <button type="button" class="btn-import-cancel" onclick="copyBackupTokenAgain()">${t('encCopyTokenBtn')}</button>
+          <button type="button" class="btn-import-apply" id="encShareBtn" style="display:none" onclick="shareBackupToken()">${t('encShareTokenBtn')}</button>
+        </div>
+      </div>
       <div id="encToast" class="import-toast" aria-live="polite"></div>
     </div>
   `;
   document.body.appendChild(modal);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeEncModal(); });
+  const relayEl = document.getElementById('encRelayUrl');
+  if (relayEl) {
+    relayEl.value = getBackupRelayBase();
+    relayEl.addEventListener('blur', () => {
+      persistBackupRelayFromField('encRelayUrl');
+      updateEncSaveModeRadios();
+    });
+    relayEl.addEventListener('input', updateEncSaveModeRadios);
+  }
+  updateEncSaveModeRadios();
+  const shortMode = document.querySelector('input[name="encSaveMode"][value="short"]');
+  const longMode = document.querySelector('input[name="encSaveMode"][value="long"]');
+  if (shortMode && longMode && relayHasConfiguredUrl()) {
+    shortMode.checked = true;
+    shortMode.disabled = false;
+  } else if (shortMode && longMode) {
+    longMode.checked = true;
+    shortMode.disabled = true;
+  }
   document.getElementById('encPw').focus();
 }
 
-// ── Backup Restore: decrypt embedded ENCRYPTED_BACKUP with password ──
-function openBackupRestoreModal() {
-  if (typeof ENCRYPTED_BACKUP === 'undefined' || !ENCRYPTED_BACKUP) {
-    const toast = document.getElementById('exportToast');
-    if (toast) { toast.textContent = t('encNoBackup'); toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+function copyBackupTokenAgain() {
+  const short = document.getElementById('encShortCode');
+  if (short && short.value) {
+    short.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(short.value).then(() => showEncToast('encToast', t('encShortCodeCopy'), false)).catch(() => showEncToast('encToast', t('exportFailed'), true));
+    }
     return;
   }
+  const result = document.getElementById('encResult');
+  if (!result || !result.value) return;
+  result.select();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(result.value).then(() => showEncToast('encToast', t('encSaveCopy'), false)).catch(() => showEncToast('encToast', t('exportFailed'), true));
+  }
+}
+
+function shareBackupToken() {
+  const short = document.getElementById('encShortCode');
+  const long = document.getElementById('encResult');
+  const text = (short && short.value) ? short.value : (long && long.value ? long.value : '');
+  if (!text || typeof navigator.share !== 'function') return;
+  navigator.share({ text, title: document.title || 'Backup' }).catch(() => {});
+}
+
+// ── Backup Restore: short code + relay, long token, or embedded ENCRYPTED_BACKUP ──
+function openBackupRestoreModal() {
   if (document.getElementById('encModal')) return;
   const modal = document.createElement('div');
   modal.id = 'encModal';
@@ -501,7 +681,13 @@ function openBackupRestoreModal() {
     <div class="import-modal">
       <div class="import-modal-title">${t('encRestoreTitle')}</div>
       <p class="import-modal-desc">${t('encRestoreDesc')}</p>
-      <div class="enc-field"><label>${t('encPwLabel')}</label><input type="password" id="encPw" class="enc-input" autocomplete="current-password"></div>
+      <div class="enc-field"><label for="encRelayUrlRestore">${t('encRelayUrlLabel')}</label>
+        <input type="url" id="encRelayUrlRestore" class="enc-input" placeholder="https://your-worker.workers.dev" autocomplete="off"></div>
+      <div class="enc-field"><label>${t('encTokenLabel')}</label><textarea id="encTokenPaste" class="import-textarea" rows="6" placeholder="${t('encTokenPlaceholder')}"></textarea></div>
+      <div class="import-modal-actions" style="margin-top:4px">
+        <button type="button" class="btn-import-cancel" onclick="fillBackupTokenFromClipboard()">${t('encClipboardPaste')}</button>
+      </div>
+      <div class="enc-field" style="margin-top:12px"><label>${t('encPwLabel')}</label><input type="password" id="encPw" class="enc-input" autocomplete="current-password"></div>
       <div class="import-modal-actions">
         <button type="button" class="btn-import-cancel" onclick="closeEncModal()">${t('importCancel')}</button>
         <button type="button" class="btn-import-apply" onclick="doBackupRestore()">${t('encRestoreBtn')}</button>
@@ -511,7 +697,24 @@ function openBackupRestoreModal() {
   `;
   document.body.appendChild(modal);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeEncModal(); });
-  document.getElementById('encPw').focus();
+  const rr = document.getElementById('encRelayUrlRestore');
+  if (rr) {
+    rr.value = getBackupRelayBase();
+    rr.addEventListener('blur', () => persistBackupRelayFromField('encRelayUrlRestore'));
+  }
+  document.getElementById('encTokenPaste').focus();
+}
+
+function fillBackupTokenFromClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    showEncToast('encToast', t('encClipboardUnavailable'), true);
+    return;
+  }
+  navigator.clipboard.readText().then((text) => {
+    const ta = document.getElementById('encTokenPaste');
+    if (ta) ta.value = text.trim();
+    showEncToast('encToast', t('encClipboardPasted'), false);
+  }).catch(() => showEncToast('encToast', t('encClipboardUnavailable'), true));
 }
 
 function closeEncModal() {
@@ -522,64 +725,136 @@ function closeEncModal() {
 async function doBackupSave() {
   const pw = document.getElementById('encPw').value;
   if (!pw) { showEncToast('encToast', t('encPwEmpty'), true); return; }
+  persistBackupRelayFromField('encRelayUrl');
+  const relay = relayUrlFromSaveModal() || getBackupRelayBase();
+  const modeEl = document.querySelector('input[name="encSaveMode"]:checked');
+  const mode = modeEl ? modeEl.value : 'long';
+
   try {
     const state = getStateForExport();
     const json = JSON.stringify(state);
-    const encrypted = await encryptData(pw, json);
-    const b64 = btoa(String.fromCharCode(...encrypted));
-    const result = document.getElementById('encResult');
-    result.value = b64;
-    result.style.display = 'block';
-    result.select();
-    navigator.clipboard.writeText(b64).then(() => {
-      showEncToast('encToast', t('encSaveCopy'), false);
-    });
+    const plainBytes = await gzipCompressUtf8(json);
+    const encrypted = await encryptData(pw, plainBytes);
+    const b64 = uint8ToBase64(encrypted);
+
+    const wrapShort = document.getElementById('encSaveResultShort');
+    const wrapLong = document.getElementById('encSaveResultLong');
+
+    if (mode === 'short') {
+      if (!relay) {
+        showEncToast('encToast', t('encRelayRequired'), true);
+        return;
+      }
+      const id = await relayStoreBlob(relay, b64);
+      if (wrapShort) wrapShort.style.display = 'block';
+      if (wrapLong) wrapLong.style.display = 'none';
+      const sc = document.getElementById('encShortCode');
+      if (sc) {
+        sc.value = id;
+        sc.focus();
+        sc.select();
+      }
+      const shareShort = document.getElementById('encShareBtnShort');
+      if (shareShort) shareShort.style.display = typeof navigator.share === 'function' ? 'inline-block' : 'none';
+      const shareLong = document.getElementById('encShareBtn');
+      if (shareLong) shareLong.style.display = 'none';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(id);
+        showEncToast('encToast', t('encShortCodeCopy'), false);
+      } else {
+        showEncToast('encToast', t('exportFailed'), true);
+      }
+    } else {
+      if (wrapShort) wrapShort.style.display = 'none';
+      if (wrapLong) wrapLong.style.display = 'block';
+      const result = document.getElementById('encResult');
+      if (result) result.value = b64;
+      const shareBtn = document.getElementById('encShareBtn');
+      if (shareBtn) shareBtn.style.display = typeof navigator.share === 'function' ? 'inline-block' : 'none';
+      const shareShort = document.getElementById('encShareBtnShort');
+      if (shareShort) shareShort.style.display = 'none';
+      if (result) {
+        result.focus();
+        result.select();
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(b64);
+        showEncToast('encToast', t('encSaveCopy'), false);
+      } else {
+        showEncToast('encToast', t('exportFailed'), true);
+      }
+    }
   } catch (e) {
-    showEncToast('encToast', t('encRestoreFailed'), true);
+    const relayErr = e && (e.message === 'relay_store' || e.message === 'relay_fetch');
+    showEncToast('encToast', relayErr ? t('encRelayStoreFailed') : t('encRestoreFailed'), true);
   }
+}
+
+function applyDecryptedBackupState(state) {
+  if (state.inputs) {
+    for (const [id, value] of Object.entries(state.inputs)) {
+      const el = document.getElementById(id);
+      if (el && value != null) el.value = String(value);
+    }
+  }
+  if (Array.isArray(state.accounts)) {
+    accounts = state.accounts;
+    acid = accounts.length ? Math.max(0, ...accounts.map(a => a.id)) : 0;
+  }
+  if (Array.isArray(state.events)) {
+    events = state.events;
+    eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
+  }
+  if (Array.isArray(state.housingScenarios)) {
+    housingScenarios = state.housingScenarios;
+    hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
+  }
+  if (state.currentSc && SC[state.currentSc]) {
+    currentSc = state.currentSc;
+    document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
+    const activeTab = document.getElementById('tab-' + currentSc);
+    if (activeTab) activeTab.classList.add('active');
+  }
+  const showRetireOnlyEl = document.getElementById('showRetireOnly');
+  if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
+  renderAll();
+  saveState();
 }
 
 async function doBackupRestore() {
   const pw = document.getElementById('encPw').value;
   if (!pw) { showEncToast('encToast', t('encPwEmpty'), true); return; }
+  persistBackupRelayFromField('encRelayUrlRestore');
+  const pasteEl = document.getElementById('encTokenPaste');
+  const rawPaste = pasteEl ? pasteEl.value.trim() : '';
+  const pasted = rawPaste.replace(/\s/g, '');
+  const embedded = (typeof ENCRYPTED_BACKUP !== 'undefined' && ENCRYPTED_BACKUP)
+    ? String(ENCRYPTED_BACKUP).replace(/\s/g, '') : '';
+
+  let b64 = '';
   try {
-    const bin = atob(ENCRYPTED_BACKUP);
+    if (rawPaste && isShortBackupCode(rawPaste)) {
+      const relayEl = document.getElementById('encRelayUrlRestore');
+      const relay = (relayEl && relayEl.value.trim().replace(/\/+$/, '')) || getBackupRelayBase();
+      if (!relay) {
+        showEncToast('encToast', t('encRelayRequired'), true);
+        return;
+      }
+      b64 = await relayFetchBlob(relay, rawPaste);
+    } else {
+      b64 = pasted || embedded;
+    }
+    if (!b64) { showEncToast('encToast', t('encNoBackupOrToken'), true); return; }
+    const bin = atob(b64);
     const buf = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-    const json = await decryptData(pw, buf);
-    const state = JSON.parse(json);
-    if (state.inputs) {
-      for (const [id, value] of Object.entries(state.inputs)) {
-        const el = document.getElementById(id);
-        if (el && value != null) el.value = String(value);
-      }
-    }
-    if (Array.isArray(state.accounts)) {
-      accounts = state.accounts;
-      acid = accounts.length ? Math.max(0, ...accounts.map(a => a.id)) : 0;
-    }
-    if (Array.isArray(state.events)) {
-      events = state.events;
-      eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
-    }
-    if (Array.isArray(state.housingScenarios)) {
-      housingScenarios = state.housingScenarios;
-      hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
-    }
-    if (state.currentSc && SC[state.currentSc]) {
-      currentSc = state.currentSc;
-      document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
-      const activeTab = document.getElementById('tab-' + currentSc);
-      if (activeTab) activeTab.classList.add('active');
-    }
-    const showRetireOnlyEl = document.getElementById('showRetireOnly');
-    if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
-    renderAll();
-    saveState();
+    const state = await backupCipherToState(pw, buf);
+    applyDecryptedBackupState(state);
     showEncToast('encToast', t('encRestoreSuccess'), false);
     setTimeout(closeEncModal, 1500);
   } catch (e) {
-    showEncToast('encToast', t('encRestoreFailed'), true);
+    const relayFail = e && (e.message === 'relay_fetch' || e.message === 'relay_store');
+    showEncToast('encToast', relayFail ? t('encRelayFetchFailed') : t('encRestoreFailed'), true);
   }
 }
 
@@ -698,17 +973,23 @@ function simulate(sk = 'base', returnSequence = null) {
     retireDrawAge: parseInt(a.retireDrawAge) || 60,
   }));
 
-  // expense-add: each entry tracks its own current value and inflates independently
+  // expense-add / income-add: each entry tracks its own current value
   const extraExpenses = []; // { id, current, endAge }
+  const extraIncomes = []; // { id, current, endAge }
 
   const rows = [];
   for (let age = startAge; age <= 100; age++) {
     const isRetired = age >= retireAge;
 
-    // Remove expired extra expenses
+    // Remove expired extra expenses / incomes
     for (let i = extraExpenses.length - 1; i >= 0; i--) {
       if (extraExpenses[i].endAge && age >= extraExpenses[i].endAge) {
         extraExpenses.splice(i, 1);
+      }
+    }
+    for (let i = extraIncomes.length - 1; i >= 0; i--) {
+      if (extraIncomes[i].endAge && age >= extraIncomes[i].endAge) {
+        extraIncomes.splice(i, 1);
       }
     }
 
@@ -718,6 +999,10 @@ function simulate(sk = 'base', returnSequence = null) {
       if (parseInt(ev.age, 10) !== age) continue;
       const val = Number(parseMoney(ev.value));
       if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.income') }); }
+      else if (ev.type === 'income-add') {
+        extraIncomes.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
+        evDescs.push({ type: ev.type, label: ev.name || t('ev.incomeAdd') });
+      }
       else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.expense') }); }
       else if (ev.type === 'expense-add') {
         extraExpenses.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
@@ -729,6 +1014,7 @@ function simulate(sk = 'base', returnSequence = null) {
 
     // Total expense = base expense + all active extra expenses
     const totalExpense = expense + extraExpenses.reduce((s, x) => s + x.current, 0);
+    const totalIncome = income + extraIncomes.reduce((s, x) => s + x.current, 0);
 
     const mPayment = mortgage > 0 ? mortgage * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30 - (age - startAge)))) : 0;
     const slPayment = studentLoan > 0 ? studentLoan * slRate / (1 - Math.pow(1 + slRate, -Math.max(1, 10 - (age - startAge)))) : 0;
@@ -742,14 +1028,14 @@ function simulate(sk = 'base', returnSequence = null) {
     let totalAccBalancePre = 0;
     for (const ac of accState) {
       const stillContrib = age >= ac.contribStartAge && age < ac.contribEndAge;
-      const selfAmt = stillContrib ? (ac.contribSelfRate > 0 ? income * ac.contribSelfRate : ac.contribSelf) : 0;
+      const selfAmt = stillContrib ? (ac.contribSelfRate > 0 ? totalIncome * ac.contribSelfRate : ac.contribSelf) : 0;
       let employerAmt = 0;
       if (stillContrib) {
         if (ac.employerMatchMode === 'match') {
-          const matchable = Math.min(selfAmt, ac.matchCapPercent * income);
+          const matchable = Math.min(selfAmt, ac.matchCapPercent * totalIncome);
           employerAmt = ac.matchRate * matchable;
         } else if (ac.contribEmployerRate > 0) {
-          employerAmt = income * ac.contribEmployerRate;
+          employerAmt = totalIncome * ac.contribEmployerRate;
         } else {
           employerAmt = ac.contribEmployer;
         }
@@ -769,7 +1055,7 @@ function simulate(sk = 'base', returnSequence = null) {
       if (tac) tac.balance = 0;
     }
 
-    const savings = isRetired ? 0 : (income - totalExpense - totalDebt - totalAccContrib);
+    const savings = isRetired ? 0 : (totalIncome - totalExpense - totalDebt - totalAccContrib);
     const rr = returnSequence ? returnSequence[age - startAge] : rrBase;
     invest = invest * (1 + rr) + savings + lumpIn - lumpOut;
     if (isRetired && totalExpense > 0) {
@@ -811,14 +1097,17 @@ function simulate(sk = 'base', returnSequence = null) {
     }
 
     const totalLiquid = Math.max(0, invest) + totalAccAfterTax;
-    const dispIncome = isRetired ? null : income;
+    const dispIncome = isRetired ? null : totalIncome;
     const dispExpense = totalExpense + (isRetired ? 0 : totalDebt);
     const dispSavings = isRetired ? -totalExpense : savings;
 
     // Inflate base expense and each extra expense independently
     expense = expense * (1 + inf);
     for (const x of extraExpenses) x.current = x.current * (1 + inf);
-    if (!isRetired) income = income * (1 + wageGrowth);
+    if (!isRetired) {
+      income = income * (1 + wageGrowth);
+      for (const x of extraIncomes) x.current = x.current * (1 + wageGrowth);
+    }
 
     rows.push({
       age,
@@ -1507,6 +1796,7 @@ function renderEventList() {
 
   const BADGES = {
     income: ['ebadge-income', 'evBadge.income'],
+    'income-add': ['ebadge-income-add', 'evBadge.income-add'],
     expense: ['ebadge-expense', 'evBadge.expense'],
     'expense-add': ['ebadge-expense-add', 'evBadge.expense-add'],
     'lumpsum-out': ['ebadge-lumpsum-out', 'evBadge.lumpsum-out'],
@@ -1532,6 +1822,7 @@ function renderEventList() {
         <div class="field"><label>${t('ev.kind')}</label>
           <select class="acc-sel" onchange="updateEvent(${ev.id},'type',this.value)">
             <option value="income" ${ev.type === 'income' ? 'selected' : ''}>${t('ev.income')}</option>
+            <option value="income-add" ${ev.type === 'income-add' ? 'selected' : ''}>${t('ev.incomeAdd')}</option>
             <option value="expense" ${ev.type === 'expense' ? 'selected' : ''}>${t('ev.expense')}</option>
             <option value="expense-add" ${ev.type === 'expense-add' ? 'selected' : ''}>${t('ev.expenseAdd')}</option>
             <option value="lumpsum-out" ${ev.type === 'lumpsum-out' ? 'selected' : ''}>${t('ev.lumpOut')}</option>
@@ -1549,7 +1840,7 @@ function renderEventList() {
             <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="${t('ev.placeholderAmount')}" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
           </div>
         </div>
-        ${ev.type === 'expense-add' ? `<div class="row2">
+        ${ev.type === 'expense-add' || ev.type === 'income-add' ? `<div class="row2">
           <div class="field"><label>${t('ev.endAge')}</label>
             <div class="iw"><input class="acc-num" type="number" value="${ev.endAge || ''}" min="1" max="100" placeholder="${t('ev.endAgePlaceholder')}" onchange="updateEvent(${ev.id},'endAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
