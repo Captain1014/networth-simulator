@@ -1,0 +1,9 @@
+name = "net-worth-backup-relay"
+main = "worker.mjs"
+compatibility_date = "2024-01-01"
+
+# Run: wrangler kv namespace create BACKUP_KV
+# Then paste the generated id below and save as wrangler.toml
+[[kv_namespaces]]
+binding = "BACKUP_KV"
+id = "YOUR_KV_NAMESPACE_ID"
