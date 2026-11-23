@@ -8,6 +8,8 @@ i18n-guide.md
 scenario-import.json
 *-personal.json
 *-private.json
+*.nwbackup
+networth-recovery*.json
 .env
 .env.*
 !.env.example
