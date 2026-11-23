@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>자산 시뮬레이터</title>
 <script>window.APP_LOCALE='ko';window.APP_CURRENCY='KRW';</script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/style.css?v=20261123-1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -22,11 +22,14 @@
 <div class="header">
   <div class="header-icon">💰</div>
   <div>
-    <h1 data-i18n="title">자산 시뮬레이터</h1>
-    <p data-i18n="subtitle">다중 계좌 · 세율 반영 · 인생 이벤트 · 장기 자산 흐름</p>
-    <button type="button" class="btn-export" id="btnExport" onclick="copyStateToClipboard()" data-i18n="exportCopy">데이터 복사 (채팅에 붙여넣기)</button>
-    <button type="button" class="btn-import" onclick="openImportModal()" data-i18n="importBtn">데이터 불러오기</button>
+    <h1 data-i18n="title">Net Worth Simulator</h1>
+    <p data-i18n="subtitle">Multi-account · Tax-aware · Life events · Long-term flow</p>
+    <button type="button" class="btn-export" id="btnExport" onclick="copyStateToClipboard()" data-i18n="exportCopy">Copy data (paste in chat)</button>
+    <button type="button" class="btn-import" onclick="openImportModal()" data-i18n="importBtn">Import data</button>
     <span class="export-toast" id="exportToast" aria-live="polite"></span>
+    <br>
+    <button type="button" class="btn-enc-export" onclick="openBackupSaveModal()" data-i18n="encSave">🔒 Create Backup</button>
+    <button type="button" class="btn-enc-import" onclick="openBackupRestoreModal()" data-i18n="encRestore">🔒 Restore Backup</button>
   </div>
 </div>
 
@@ -102,24 +105,24 @@
       </div>
       <div class="fire-box" id="fireBox">
         <div class="fire-row">
-          <span class="fire-label" data-i18n="fire.need">필요 은퇴 자산</span>
+          <span class="fire-label" data-i18n="fire.need">Required retirement assets</span>
           <span class="fire-val co" id="fireTarget">—</span>
         </div>
         <div class="fire-row" style="opacity:0.6">
-          <span class="fire-label" style="font-size:10px" data-i18n="fire.needNet">국민연금 반영 시 필요액</span>
+          <span class="fire-label" style="font-size:10px" data-i18n="fire.needNet">Required (net of pension)</span>
           <span class="fire-val cg" style="font-size:11px" id="fireNet">—</span>
         </div>
         <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
         <div class="fire-progress-label">
-          <span data-i18n="fire.progress">달성률 (계좌 합계 자동 반영)</span>
+          <span data-i18n="fire.progress">Progress (accounts)</span>
           <span id="firePct" style="color:var(--gold);font-weight:600">—</span>
         </div>
         <div class="fire-track">
           <div class="fire-fill" id="fireFill"></div>
         </div>
         <div class="fire-sublabel">
-          <span id="fireNow" data-i18n="fire.now">현재 —</span>
-          <span id="fireRetireEst" data-i18n="fire.atRetire">은퇴 시 —</span>
+          <span id="fireNow" data-i18n="fire.now">Now —</span>
+          <span id="fireRetireEst" data-i18n="fire.atRetire">At retirement —</span>
         </div>
       </div>
     </div>
@@ -154,7 +157,7 @@
       <div class="sum-card">
         <div class="lbl" data-i18n="summary.nw">순자산 (Net Worth)</div>
         <div class="val co" id="sumNW">—</div>
-        <div class="sub" id="subNW" data-i18n="summary.subNWPlaceholder">자산 − 부채</div>
+        <div class="sub" id="subNW" data-i18n="summary.subNWPlaceholder">Assets − Debt</div>
       </div>
       <div class="sum-card">
         <div class="lbl" data-i18n="summary.debt">총 부채</div>
@@ -178,26 +181,32 @@
       </div>
     </div>
     <div class="chart-mode-bar">
-      <span class="sc-lbl" data-i18n="chart.view">보기</span>
-      <button type="button" class="sc-btn active" id="chartModeSingle" onclick="setChartMode('single')" data-i18n="chart.modeSingle">단일 궤적</button>
-      <button type="button" class="sc-btn" id="chartModeMC" onclick="setChartMode('montecarlo')" data-i18n="chart.modeMC">몬테카를로</button>
+      <span class="sc-lbl" data-i18n="chart.view">View</span>
+      <button type="button" class="sc-btn active" id="chartModeSingle" onclick="setChartMode('single')" data-i18n="chart.modeSingle">Single path</button>
+      <button type="button" class="sc-btn" id="chartModeMC" onclick="setChartMode('montecarlo')" data-i18n="chart.modeMC">Monte Carlo</button>
+      <button type="button" class="sc-btn" id="chartModeHousing" onclick="setChartMode('housing')" data-i18n="chart.modeHousing">Housing</button>
     </div>
     <div id="mc-controls" class="mc-controls" style="display:none">
-      <label for="returnVolatility" data-i18n="chart.volatility">변동성 (표준편차 %)</label>
+      <label for="returnVolatility" data-i18n="chart.volatility">Volatility (std dev %)</label>
       <input type="text" id="returnVolatility" value="15" placeholder="15" style="width:4em;margin:0 8px"><span>%</span>
-      <button type="button" class="btn-mc-run" id="btnRunMC" onclick="runMonteCarloUI()" data-i18n="chart.mcRun">몬테카를로 실행</button>
+      <button type="button" class="btn-mc-run" id="btnRunMC" onclick="runMonteCarloUI()" data-i18n="chart.mcRun">Run Monte Carlo</button>
       <span id="mcSuccessRate" class="mc-success-rate" aria-live="polite"></span>
-      <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="chart.mcHelp">차트 해석: 중앙값(50%)=보통 궤적, 10%~90%=나쁜/좋은 경우 범위. 성공률=100세까지 자산 유지 비율(1000번 중).</span></span>
+      <span class="tooltip-wrap">ⓘ<span class="tooltip-body" data-i18n="chart.mcHelp">Chart: Median = typical path; 10th–90th = bad/good range. Success rate = % of 1000 runs with assets left at 100.</span></span>
+    </div>
+    <div id="housing-controls" class="housing-controls" style="display:none">
+      <button type="button" class="btn-housing-edit" onclick="openHousingModal()">🏠 <span data-i18n="housing.editScenarios">Edit scenarios</span></button>
+      <span id="housingBreakevenLabel" class="housing-breakeven"></span>
     </div>
     <div class="chart-wrap">
       <canvas id="mainChart"></canvas>
     </div>
     <div class="sc-bar" id="scenarioBar">
-      <span class="sc-lbl" id="sc-lbl" data-i18n="chart.scenario">시나리오</span>
-      <button class="sc-btn active" id="tab-base" onclick="switchSc('base')" data-i18n="chart.base">기본</button>
-      <button class="sc-btn" id="tab-opt" onclick="switchSc('opt')" data-i18n="chart.opt">낙관 (+2%)</button>
-      <button class="sc-btn" id="tab-pes" onclick="switchSc('pes')" data-i18n="chart.pes">비관 (−2%)</button>
+      <span class="sc-lbl" id="sc-lbl" data-i18n="chart.scenario">Scenario</span>
+      <button class="sc-btn active" id="tab-base" onclick="switchSc('base')" data-i18n="chart.base">Base</button>
+      <button class="sc-btn" id="tab-opt" onclick="switchSc('opt')" data-i18n="chart.opt">Optimistic (+2%)</button>
+      <button class="sc-btn" id="tab-pes" onclick="switchSc('pes')" data-i18n="chart.pes">Pessimistic (−2%)</button>
     </div>
+    <div id="housingTableWrap" style="display:none"></div>
   </div>
   <div class="tab-panel active" id="panel-table">
     <div class="tbl-section">
@@ -214,6 +223,13 @@
 </div>
 </div>
 
-<script src="../js/app.js"></script>
+<div class="import-modal-overlay" id="housingModalOverlay" style="display:none" onclick="if(event.target===this)closeHousingModal()">
+  <div class="housing-modal" id="housingModal"></div>
+</div>
+
+<script src="../js/backup.example.js"></script>
+<script src="../js/core.js?v=20261123-1"></script>
+<script src="../js/app.js?v=20261123-1"></script>
+<script src="../js/workspace.js?v=20261123-1"></script>
 </body>
 </html>

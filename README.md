@@ -22,13 +22,37 @@ index.html          # Root page (Korean locale)
 ko/index.html       # Korean version
 eng/index.html      # English version
 css/style.css       # Styles
-js/app.js           # All application logic
+js/app.js           # Simulation and visualizations
+js/core.js          # Validation, migration, storage, and FX helpers
+js/workspace.js     # Persistence, recovery, currency entry, and accessible UI
+tests/              # Isolated headless Chrome regression tests
 docs/               # Design notes and guides
 ```
 
 ## Usage
 
 Open `index.html` (or `eng/index.html` for English) in any browser. No build step or server needed — everything runs client-side with vanilla HTML/CSS/JS and Chart.js.
+
+## Saving, backup, and multiple currencies
+
+- Basic monetary fields have separate USD and KRW inputs. Both amounts are added, not treated as alternative representations of the same balance. Leave the other currency blank if it does not apply.
+- Each account, life event, and housing scenario has its own input currency. Account balances and fixed contributions use that account's currency; percentage contributions retain the existing total-income basis.
+- The display-currency selector changes charts, summary cards, and tables without modifying entered amounts. Calculations normalize amounts to USD internally.
+- USD/KRW reference rates come from [Frankfurter](https://frankfurter.dev/). The UI shows the reference date and fetch time. These are not live trading quotes or bank conversion prices. Long-term projections hold the selected exchange rate constant.
+- Rates are checked on entry, on returning to the tab, and hourly while visible, with a one-hour freshness window. Offline, the last valid rate is used with a warning; rates over four days old are flagged. Without a rate, cross-currency results pause, while raw inputs and encrypted backup remain available. A manual rate can be entered for offline use.
+- Autosave belongs to this browser profile and does not synchronize across devices. Local saves are not encrypted. Save failures are shown; invalid or unreadable stored data is not automatically replaced with examples.
+- Older saves lack currency metadata. Confirm their original currency before migration; do not infer it from the page language. The stored original is preserved for recovery.
+- Use **Create Backup → Download encrypted file** and **Restore Backup → Choose encrypted backup file** to transfer data. Keep the password separately. Existing long backup tokens remain supported. Short relay codes expire after 48 hours and are not permanent backups.
+- Recovery controls can restore the previous valid snapshot or download the stored original. Recovery JSON and clipboard exports are unencrypted; keep them private and out of Git.
+- Changes in another tab pause saving to avoid silently overwriting that tab's data. Export any edits before reloading.
+
+## Tests
+
+Run `python3 tests/run.py` with Google Chrome installed. Pass `--chrome /path/to/chrome` for a different executable.
+
+The test runner uses Python's standard library, a localhost-only server, temporary Chrome profiles, the pinned Chart.js version, and deterministic fake exchange rates. It does not access your normal browser data or depend on the live exchange-rate API. Internet access is required to obtain Chart.js from its existing CDN.
+
+Coverage includes mixed-currency calculations and display toggles, load/migration failures, save conflicts and quota errors, import validation, encrypted file/token round trips, stale/offline FX handling, locale pages, and keyboard-accessible dialogs. No build step or Node installation is required.
 
 ## Tech Stack
 

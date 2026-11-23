@@ -23,7 +23,6 @@ const ACC_TYPES = {
 };
 
 const LOCALE = (typeof window !== 'undefined' && window.APP_LOCALE) || 'ko';
-const CURRENCY = (typeof window !== 'undefined' && window.APP_CURRENCY) || 'KRW';
 
 const T = {
   ko: {
@@ -153,6 +152,14 @@ function applyLocale() {
     if (!val) return;
     if (el.getAttribute('data-i18n-html') !== null) {
       if (el.innerHTML !== val) el.innerHTML = val;
+    } else if (el.querySelector('.tooltip-wrap')) {
+      let span = el.querySelector('.label-text');
+      if (!span) {
+        span = document.createElement('span');
+        [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).forEach(n => n.remove());
+        el.prepend(span);
+      }
+      span.textContent = val;
     } else if (el.textContent !== val) {
       el.textContent = val;
     }
@@ -172,14 +179,6 @@ function getAccTypeDesc(type) {
   return (v && v !== 'accType.' + type + '_desc') ? v : (ACC_TYPES[type]?.desc || '');
 }
 
-const STORAGE_KEY = 'networth-simulator-state';
-const INPUT_IDS = [
-  'currentAge', 'retireAge', 'investAsset', 'returnRate', 'returnVolatility', 'inflation', 'wageGrowthRate',
-  'realEstate', 'vehicle', 'otherAsset',
-  'mortgage', 'mortgageRate', 'studentLoan', 'studentLoanRate', 'carLoan', 'otherDebt',
-  'annualIncome', 'annualExpense',
-  'targetMonthly', 'withdrawRate', 'externalPension',
-];
 let chartMode = 'single'; // 'single' | 'montecarlo' | 'housing'
 let mcResult = null;     // { successRate, p10, p50, p90, labels } or null
 let housingScenarios = [];
@@ -191,45 +190,9 @@ let saveTimeout = null;
 // ═══════════════════════════════════════════════════
 // LOCAL STORAGE
 // ═══════════════════════════════════════════════════
-function saveState() {
-  clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
-    try {
-      const inputs = {};
-      for (const id of INPUT_IDS) {
-        const el = document.getElementById(id);
-        if (el) inputs[id] = el.value;
-      }
-      const showRetireOnlyEl = document.getElementById('showRetireOnly');
-      const state = {
-        inputs,
-        accounts: accounts.map(a => ({ ...a })),
-        events: events.map(e => ({ ...e })),
-        housingScenarios: housingScenarios.map(h => ({ ...h })),
-        currentSc,
-        showRetireOnly: showRetireOnlyEl ? showRetireOnlyEl.checked : false,
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) { /* quota or disabled */ }
-  }, 400);
-}
+function saveState() { queueStateSave(); }
 
-function getStateForExport() {
-  const inputs = {};
-  for (const id of INPUT_IDS) {
-    const el = document.getElementById(id);
-    if (el) inputs[id] = el.value;
-  }
-  const showRetireOnlyEl = document.getElementById('showRetireOnly');
-  return {
-    inputs,
-    accounts: accounts.map(a => ({ ...a })),
-    events: events.map(e => ({ ...e })),
-    housingScenarios: housingScenarios.map(h => ({ ...h })),
-    currentSc,
-    showRetireOnly: showRetireOnlyEl ? showRetireOnlyEl.checked : false,
-  };
-}
+function getStateForExport() { return captureState(); }
 
 function buildYearlyTableText(rows, showRetireOnly) {
   const list = showRetireOnly ? rows.filter(r => r.isRetired) : rows;
@@ -283,9 +246,9 @@ function buildHousingTableText() {
   const initials = data.scenarios.map(sc => {
     const hs = housingScenarios.find(h => h.id === sc.id);
     if (!hs) return '—';
-    if (hs.type === 'buy') return fmt(parseMoney(hs.purchasePrice) * (1 - (parseFloat(hs.ltvRatio) || 0) / 100));
-    if (hs.type === 'jeonse') return fmt(parseMoney(hs.deposit));
-    return fmt(parseMoney(hs.rentDeposit) || 0);
+    if (hs.type === 'buy') return fmt(objectMoney(hs, 'purchasePrice') * (1 - (parseFloat(hs.ltvRatio) || 0) / 100));
+    if (hs.type === 'jeonse') return fmt(objectMoney(hs, 'deposit'));
+    return fmt(objectMoney(hs, 'rentDeposit') || 0);
   });
   lines.push('| Initial outlay | ' + initials.join(' | ') + ' |');
 
@@ -293,7 +256,7 @@ function buildHousingTableText() {
   if (data.scenarios.some(s => s.type === 'buy')) {
     const loans = data.scenarios.map(sc => {
       const hs = housingScenarios.find(h => h.id === sc.id);
-      if (hs && hs.type === 'buy') return fmt(parseMoney(hs.purchasePrice) * (parseFloat(hs.ltvRatio) || 0) / 100);
+      if (hs && hs.type === 'buy') return fmt(objectMoney(hs, 'purchasePrice') * (parseFloat(hs.ltvRatio) || 0) / 100);
       return '—';
     });
     lines.push('| Loan | ' + loans.join(' | ') + ' |');
@@ -325,28 +288,21 @@ function buildHousingTableText() {
   return lines.join('\n');
 }
 
-function copyStateToClipboard() {
-  const state = getStateForExport();
-  const json = JSON.stringify(state, null, 2);
-  const rows = simulate(currentSc);
-  const tableText = buildYearlyTableText(rows, state.showRetireOnly);
-  const housingText = buildHousingTableText();
-  const wrap = '```json\n' + json + '\n```' + (tableText ? '\n\n' + tableText : '') + (housingText ? '\n\n' + housingText : '');
-  navigator.clipboard.writeText(wrap).then(() => {
-    const el = document.getElementById('exportToast');
-    if (el) {
-      el.textContent = t('exportToast');
-      el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 2500);
-    }
-  }).catch(() => {
-    const el = document.getElementById('exportToast');
-    if (el) {
-      el.textContent = t('exportFailed');
-      el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 3000);
-    }
-  });
+async function copyStateToClipboard() {
+  if (!confirm(L('This copies unencrypted financial data. Share it only with people you trust. Continue?',
+    '암호화되지 않은 재무 데이터를 복사합니다. 신뢰하는 대상에게만 공유하세요. 계속할까요?'))) return;
+  const toast = document.getElementById('exportToast');
+  try {
+    const state = getStateForExport();
+    let tables = '';
+    try {
+      tables = '\n\n' + buildYearlyTableText(simulate(currentSc), state.showRetireOnly) + '\n\n' + buildHousingTableText();
+    } catch (_) { /* Raw data can still be transferred without an available FX rate. */ }
+    await navigator.clipboard.writeText('```json\n' + JSON.stringify(state, null, 2) + '\n```' + tables);
+    toast.textContent = t('exportToast');
+  } catch (_) { toast.textContent = L('Copy failed. Check your inputs or use encrypted file backup.', '복사하지 못했습니다. 입력을 확인하거나 암호화 파일 백업을 사용하세요.'); }
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 function openImportModal() {
@@ -368,10 +324,12 @@ function openImportModal() {
   `;
   document.body.appendChild(modal);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeImportModal(); });
+  setupDialog(modal, closeImportModal);
   document.getElementById('importTextarea').focus();
 }
 
 function closeImportModal() {
+  releaseDialog('importModal');
   const modal = document.getElementById('importModal');
   if (modal) modal.remove();
 }
@@ -379,66 +337,17 @@ function closeImportModal() {
 function applyImportData() {
   const raw = (document.getElementById('importTextarea')?.value || '').trim();
   if (!raw) return;
-  // Strip markdown ```json ... ``` wrapper if present
-  let jsonStr = raw;
-  const mdMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
-  if (mdMatch) jsonStr = mdMatch[1].trim();
-  // Strip trailing markdown table if present
-  const tableIdx = jsonStr.lastIndexOf('}');
-  if (tableIdx !== -1) jsonStr = jsonStr.substring(0, tableIdx + 1);
-
   try {
-    const state = JSON.parse(jsonStr);
-    if (state.inputs) {
-      for (const [id, value] of Object.entries(state.inputs)) {
-        const el = document.getElementById(id);
-        if (el && value != null) el.value = String(value);
-      }
-    }
-    if (Array.isArray(state.accounts)) {
-      accounts = state.accounts;
-      acid = accounts.length ? Math.max(0, ...accounts.map(a => a.id)) : 0;
-    }
-    if (Array.isArray(state.events)) {
-      events = state.events;
-      eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
-    }
-    if (Array.isArray(state.housingScenarios)) {
-      housingScenarios = state.housingScenarios;
-      hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
-    }
-    if (state.currentSc && SC[state.currentSc]) {
-      currentSc = state.currentSc;
-      document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
-      const activeTab = document.getElementById('tab-' + currentSc);
-      if (activeTab) activeTab.classList.add('active');
-    }
-    const showRetireOnlyEl = document.getElementById('showRetireOnly');
-    if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
-
-    renderAll();
-    saveState();
-    closeImportModal();
-
-    const toast = document.getElementById('exportToast');
-    if (toast) {
-      toast.textContent = t('importSuccess');
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2500);
-    }
-  } catch (e) {
+    const wrapped = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (raw.length > 2000000) throw new Error('size');
+    if (importWorkspace(JSON.parse(wrapped ? wrapped[1] : raw))) closeImportModal();
+  } catch (_) {
     const toast = document.getElementById('importToast');
-    if (toast) {
-      toast.textContent = t('importFailed');
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    }
+    toast.textContent = L('Invalid or incompatible data. Nothing was replaced.', '잘못되었거나 호환되지 않는 데이터입니다. 기존 내용은 교체되지 않았습니다.');
+    toast.classList.add('show');
   }
 }
 
-// ═══════════════════════════════════════════════════
-// ENCRYPTED SAVE / LOAD (AES-GCM + PBKDF2)
-// ═══════════════════════════════════════════════════
 async function deriveKey(password, salt) {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
@@ -592,9 +501,11 @@ function openBackupSaveModal() {
     <div class="import-modal">
       <div class="import-modal-title">${t('encSaveTitle')}</div>
       <p class="import-modal-desc">${t('encSaveDesc')}</p>
+      <details><summary>${L('Advanced: temporary transfer code (expires after 48 hours)', '고급: 임시 전송 코드 (48시간 후 만료)')}</summary>
       <div class="enc-field"><label for="encRelayUrl">${t('encRelayUrlLabel')}</label>
         <input type="url" id="encRelayUrl" class="enc-input" placeholder="https://your-worker.workers.dev" autocomplete="off"></div>
       <p class="import-modal-desc" style="font-size:0.88em;margin-top:4px">${t('encRelayUrlHint')}</p>
+      </details>
       <div class="enc-field enc-save-mode"><span class="enc-mode-label">${t('encSaveModeLabel')}</span>
         <label class="enc-mode-opt"><input type="radio" name="encSaveMode" value="short"> ${t('encSaveModeShort')}</label>
         <label class="enc-mode-opt"><input type="radio" name="encSaveMode" value="long" checked> ${t('encSaveModeLong')}</label>
@@ -602,7 +513,8 @@ function openBackupSaveModal() {
       <div class="enc-field"><label>${t('encPwLabel')}</label><input type="password" id="encPw" class="enc-input" autocomplete="new-password"></div>
       <div class="import-modal-actions">
         <button type="button" class="btn-import-cancel" onclick="closeEncModal()">${t('importCancel')}</button>
-        <button type="button" class="btn-import-apply" onclick="doBackupSave()">${t('encSaveBtn')}</button>
+        <button type="button" class="btn-import-apply" id="downloadEncrypted" onclick="downloadEncryptedFile()">${L('Download encrypted file', '암호화 파일 다운로드')}</button>
+        <button type="button" class="btn-import-cancel" onclick="doBackupSave()">${t('encSaveBtn')}</button>
       </div>
       <div id="encSaveResultShort" style="display:none;margin-top:12px">
         <div class="enc-field"><label>${t('encShortCodeLabel')}</label>
@@ -643,6 +555,7 @@ function openBackupSaveModal() {
     longMode.checked = true;
     shortMode.disabled = true;
   }
+  setupDialog(modal, closeEncModal);
   document.getElementById('encPw').focus();
 }
 
@@ -681,8 +594,12 @@ function openBackupRestoreModal() {
     <div class="import-modal">
       <div class="import-modal-title">${t('encRestoreTitle')}</div>
       <p class="import-modal-desc">${t('encRestoreDesc')}</p>
+      <label class="backup-file-label" for="backupFile">${L('Choose encrypted backup file', '암호화 백업 파일 선택')}</label>
+      <input id="backupFile" type="file" accept=".nwbackup,.txt" onchange="readBackupFile(this)">
+      <details><summary>${L('Advanced: relay URL for a temporary code', '고급: 임시 코드용 릴레이 URL')}</summary>
       <div class="enc-field"><label for="encRelayUrlRestore">${t('encRelayUrlLabel')}</label>
         <input type="url" id="encRelayUrlRestore" class="enc-input" placeholder="https://your-worker.workers.dev" autocomplete="off"></div>
+      </details>
       <div class="enc-field"><label>${t('encTokenLabel')}</label><textarea id="encTokenPaste" class="import-textarea" rows="6" placeholder="${t('encTokenPlaceholder')}"></textarea></div>
       <div class="import-modal-actions" style="margin-top:4px">
         <button type="button" class="btn-import-cancel" onclick="fillBackupTokenFromClipboard()">${t('encClipboardPaste')}</button>
@@ -702,6 +619,7 @@ function openBackupRestoreModal() {
     rr.value = getBackupRelayBase();
     rr.addEventListener('blur', () => persistBackupRelayFromField('encRelayUrlRestore'));
   }
+  setupDialog(modal, closeEncModal);
   document.getElementById('encTokenPaste').focus();
 }
 
@@ -718,6 +636,7 @@ function fillBackupTokenFromClipboard() {
 }
 
 function closeEncModal() {
+  releaseDialog('encModal');
   const m = document.getElementById('encModal');
   if (m) m.remove();
 }
@@ -790,36 +709,7 @@ async function doBackupSave() {
   }
 }
 
-function applyDecryptedBackupState(state) {
-  if (state.inputs) {
-    for (const [id, value] of Object.entries(state.inputs)) {
-      const el = document.getElementById(id);
-      if (el && value != null) el.value = String(value);
-    }
-  }
-  if (Array.isArray(state.accounts)) {
-    accounts = state.accounts;
-    acid = accounts.length ? Math.max(0, ...accounts.map(a => a.id)) : 0;
-  }
-  if (Array.isArray(state.events)) {
-    events = state.events;
-    eid = events.length ? Math.max(0, ...events.map(e => e.id)) : 0;
-  }
-  if (Array.isArray(state.housingScenarios)) {
-    housingScenarios = state.housingScenarios;
-    hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
-  }
-  if (state.currentSc && SC[state.currentSc]) {
-    currentSc = state.currentSc;
-    document.querySelectorAll('.sc-btn').forEach(b => b.classList.remove('active'));
-    const activeTab = document.getElementById('tab-' + currentSc);
-    if (activeTab) activeTab.classList.add('active');
-  }
-  const showRetireOnlyEl = document.getElementById('showRetireOnly');
-  if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
-  renderAll();
-  saveState();
-}
+function applyDecryptedBackupState(state) { return importWorkspace(state); }
 
 async function doBackupRestore() {
   const pw = document.getElementById('encPw').value;
@@ -849,7 +739,7 @@ async function doBackupRestore() {
     const buf = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
     const state = await backupCipherToState(pw, buf);
-    applyDecryptedBackupState(state);
+    if (!applyDecryptedBackupState(state)) return;
     showEncToast('encToast', t('encRestoreSuccess'), false);
     setTimeout(closeEncModal, 1500);
   } catch (e) {
@@ -858,86 +748,19 @@ async function doBackupRestore() {
   }
 }
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const state = JSON.parse(raw);
-    if (state.inputs) {
-      for (const [id, value] of Object.entries(state.inputs)) {
-        const el = document.getElementById(id);
-        if (el && value != null) el.value = String(value);
-      }
-    }
-    if (Array.isArray(state.accounts) && state.accounts.length > 0) {
-      accounts = state.accounts;
-      acid = Math.max(0, ...accounts.map(a => a.id));
-    }
-    if (Array.isArray(state.events) && state.events.length > 0) {
-      events = state.events;
-      eid = Math.max(0, ...events.map(e => e.id));
-    }
-    if (Array.isArray(state.housingScenarios)) {
-      housingScenarios = state.housingScenarios;
-      hsid = housingScenarios.length ? Math.max(0, ...housingScenarios.map(h => h.id)) : 0;
-    }
-    if (state.currentSc && SC[state.currentSc]) currentSc = state.currentSc;
-    const showRetireOnlyEl = document.getElementById('showRetireOnly');
-    if (showRetireOnlyEl && state.showRetireOnly != null) showRetireOnlyEl.checked = state.showRetireOnly;
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════
 function pN(id) {
-  const v = (document.getElementById(id)?.value || '').replace(/,/g, '').replace('%', '').trim();
-  return parseFloat(v) || 0;
+  if (NWCore.MONEY_IDS.includes(id)) {
+    return NWCore.toUSD(document.getElementById(id).value, 'USD', W.state.fx) +
+      NWCore.toUSD(document.getElementById(id + '_KRW').value, 'KRW', W.state.fx);
+  }
+  return NWCore.number(document.getElementById(id)?.value || '', -99.99, 1000);
 }
 function pR(id) { return pN(id) / 100; }
 
-/** Parse amount string: supports "150k", "1.5M", "150,000", etc. */
-function parseMoney(str) {
-  if (str == null || str === '') return 0;
-  const s = String(str).replace(/,/g, '').trim();
-  const m = s.match(/^([-\d.]+)\s*([kKmMbB])?$/);
-  if (!m) return parseFloat(s) || 0;
-  let n = parseFloat(m[1]);
-  if (isNaN(n)) return 0;
-  const suffix = (m[2] || '').toLowerCase();
-  if (suffix === 'k') n *= 1e3;
-  else if (suffix === 'm') n *= 1e6;
-  else if (suffix === 'b') n *= 1e9;
-  return n;
-}
-
 function fmt(n) {
-  if (n == null || isNaN(n)) return '—';
-  const a = Math.abs(Math.round(n));
-  if (CURRENCY === 'KRW') {
-    const sign = n < 0 ? '-' : '';
-    if (a >= 1e8) return sign + '₩' + (a / 1e8).toFixed(1) + '억';
-    if (a >= 1e4) return sign + '₩' + (a / 1e4).toFixed(0) + '만';
-    return (n < 0 ? '-' : '') + '₩' + a.toLocaleString('ko-KR');
-  }
-  const s = n < 0 ? '-$' : '$';
-  if (a >= 1e9) return s + (a / 1e9).toFixed(2) + 'B';
-  if (a >= 1e6) return s + (a / 1e6).toFixed(2) + 'M';
-  if (a >= 1e3) return s + (a / 1e3).toFixed(1) + 'K';
-  return s + a.toLocaleString('en-US');
+  return Number.isFinite(n) ? fmtDisplayed(displayAmount(n)) : '—';
 }
 
-// ═══════════════════════════════════════════════════
-// SIMULATE
-// ═══════════════════════════════════════════════════
-/**
- * Run one simulation path.
- * @param {string} sk - Scenario key ('base'|'opt'|'pes')
- * @param {number[]} [returnSequence] - Optional per-year return rates for investment (length = 101 - startAge). If omitted, constant rr is used.
- */
 function simulate(sk = 'base', returnSequence = null) {
   const mod = SC[sk];
   const startAge = pN('currentAge');
@@ -957,16 +780,16 @@ function simulate(sk = 'base', returnSequence = null) {
 
   const accState = accounts.map(a => ({
     id: a.id,
-    balance: parseFloat(a.balance) || 0,
+    balance: objectMoney(a, 'balance'),
     type: a.type,
     rate: (parseFloat(a.rate) || 0) / 100 + mod.p / 100,
-    contribSelf: parseFloat(a.contribSelf) || 0,
+    contribSelf: objectMoney(a, 'contribSelf'),
     contribSelfRate: (parseFloat(a.contribSelfRate) || 0) / 100,
-    contribEmployer: parseFloat(a.contribEmployer) || 0,
+    contribEmployer: objectMoney(a, 'contribEmployer'),
     contribEmployerRate: (parseFloat(a.contribEmployerRate) || 0) / 100,
     employerMatchMode: a.employerMatchMode || (a.contribEmployerRate ? 'percent' : 'fixed'),
-    matchRate: (parseFloat(a.matchRate) || 50) / 100,
-    matchCapPercent: (parseFloat(a.matchCapPercent) || 8) / 100,
+    matchRate: NWCore.number(a.matchRate ?? '50') / 100,
+    matchCapPercent: NWCore.number(a.matchCapPercent ?? '8') / 100,
     contribStartAge: parseInt(a.contribStartAge) || startAge,
     contribEndAge: parseInt(a.contribEndAge) || retireAge,
     withdrawTaxRate: (parseFloat(a.withdrawTaxRate) || 0) / 100,
@@ -997,7 +820,7 @@ function simulate(sk = 'base', returnSequence = null) {
     const evDescs = [];
     for (const ev of events) {
       if (parseInt(ev.age, 10) !== age) continue;
-      const val = Number(parseMoney(ev.value));
+      const val = objectMoney(ev, 'value');
       if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.income') }); }
       else if (ev.type === 'income-add') {
         extraIncomes.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
@@ -1016,8 +839,8 @@ function simulate(sk = 'base', returnSequence = null) {
     const totalExpense = expense + extraExpenses.reduce((s, x) => s + x.current, 0);
     const totalIncome = income + extraIncomes.reduce((s, x) => s + x.current, 0);
 
-    const mPayment = mortgage > 0 ? mortgage * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30 - (age - startAge)))) : 0;
-    const slPayment = studentLoan > 0 ? studentLoan * slRate / (1 - Math.pow(1 + slRate, -Math.max(1, 10 - (age - startAge)))) : 0;
+    const mPayment = mortgage > 0 ? (mRate === 0 ? mortgage / Math.max(1, 30 - (age - startAge)) : mortgage * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30 - (age - startAge))))) : 0;
+    const slPayment = studentLoan > 0 ? (slRate === 0 ? studentLoan / Math.max(1, 10 - (age - startAge)) : studentLoan * slRate / (1 - Math.pow(1 + slRate, -Math.max(1, 10 - (age - startAge))))) : 0;
     const carPayment = carLoan > 0 ? carLoan / Math.max(1, 5 - (age - startAge)) : 0;
     const totalDebt = Math.min(mPayment + slPayment + carPayment, mortgage + studentLoan + carLoan);
     mortgage = Math.max(0, mortgage - (mPayment - mortgage * mRate));
@@ -1034,7 +857,7 @@ function simulate(sk = 'base', returnSequence = null) {
         if (ac.employerMatchMode === 'match') {
           const matchable = Math.min(selfAmt, ac.matchCapPercent * totalIncome);
           employerAmt = ac.matchRate * matchable;
-        } else if (ac.contribEmployerRate > 0) {
+        } else if (ac.employerMatchMode === 'percent') {
           employerAmt = totalIncome * ac.contribEmployerRate;
         } else {
           employerAmt = ac.contribEmployer;
@@ -1164,7 +987,7 @@ function runMonteCarlo() {
   var startAge = pN('currentAge');
   var nYears = 100 - startAge + 1;
   var expectedReturn = pR('returnRate');
-  var vol = (parseFloat(document.getElementById('returnVolatility')?.value || '15') || 15) / 100;
+  var vol = pR('returnVolatility');
 
   var rng = createMcRng();
   var paths = [];
@@ -1179,9 +1002,9 @@ function runMonteCarlo() {
   let successCount = 0;
   for (let j = 0; j < n; j++) {
     const vals = paths.map(rows => rows[j].totalLiquid).sort((a, b) => a - b);
-    p10.push(Math.round(vals[Math.floor(MC_RUNS * 0.1)]));
-    p50.push(Math.round(vals[Math.floor(MC_RUNS * 0.5)]));
-    p90.push(Math.round(vals[Math.floor(MC_RUNS * 0.9)]));
+    p10.push(vals[Math.floor(MC_RUNS * 0.1)]);
+    p50.push(vals[Math.floor(MC_RUNS * 0.5)]);
+    p90.push(vals[Math.floor(MC_RUNS * 0.9)]);
   }
   // Use a small threshold so floating-point "dust" (e.g. 1e-10) counts as depleted
   var depletionThreshold = 1;
@@ -1220,7 +1043,7 @@ function renderSummary(rows) {
   const iNow = pN('investAsset');
   const real = pN('realEstate') + pN('vehicle') + pN('otherAsset');
   const totalDebt = pN('mortgage') + pN('studentLoan') + pN('carLoan') + pN('otherDebt');
-  const accTotal = accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const accTotal = accounts.reduce((s, a) => s + objectMoney(a, 'balance'), 0);
   const totalAssets = iNow + accTotal + real;
   const netWorth = totalAssets - totalDebt;
 
@@ -1266,8 +1089,8 @@ function renderSummary(rows) {
   const car = pN('carLoan');
   const mRate = pR('mortgageRate');
   const slRate = pR('studentLoanRate');
-  const mPay = mort > 0 ? mort * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30))) : 0;
-  const slPay = sl > 0 ? sl * slRate / (1 - Math.pow(1 + slRate, -Math.max(1, 10))) : 0;
+  const mPay = mort > 0 ? (mRate === 0 ? mort / 30 : mort * mRate / (1 - Math.pow(1 + mRate, -30))) : 0;
+  const slPay = sl > 0 ? (slRate === 0 ? sl / 10 : sl * slRate / (1 - Math.pow(1 + slRate, -10))) : 0;
   const carPay = car > 0 ? car / Math.max(1, 5) : 0;
   const annualDebtPay = Math.min(mPay + slPay + carPay, mort + sl + car);
   const net = income - expense - annualDebtPay;
@@ -1289,9 +1112,9 @@ function renderChart(rows) {
   }
   const ageSfx = t('summary.ageSuffix');
   const labels = rows.map(r => r.age + ageSfx);
-  const totalD = rows.map(r => Math.round(r.totalLiquid));
-  const investD = rows.map(r => r.invest >= 0 ? Math.round(r.invest) : null);
-  const accD = rows.map(r => Math.round(r.totalAccAfterTax));
+  const totalD = rows.map(r => displayAmount(r.totalLiquid));
+  const investD = rows.map(r => r.invest >= 0 ? displayAmount(r.invest) : null);
+  const accD = rows.map(r => displayAmount(r.totalAccAfterTax));
 
   if (chartInst) chartInst.destroy();
   const ctx = document.getElementById('mainChart').getContext('2d');
@@ -1318,12 +1141,12 @@ function renderChart(rows) {
           titleColor: '#e8e6f0',
           bodyColor: '#a0a0b8',
           padding: 10,
-          callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` },
+          callbacks: { label: c => ` ${c.dataset.label}: ${fmtDisplayed(c.parsed.y)}` },
         },
       },
       scales: {
         x: { ticks: { color: '#606078', font: { size: 9 }, maxTicksLimit: 14 }, grid: { color: 'rgba(44,44,58,0.4)' } },
-        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
+        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmtDisplayed(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
       },
     },
   });
@@ -1337,9 +1160,9 @@ function renderChartMC(data) {
     data: {
       labels: data.labels,
       datasets: [
-        { label: t('chart.mcP90'), data: data.p90, borderColor: 'rgba(212,168,83,0.5)', backgroundColor: 'transparent', borderWidth: 1, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
-        { label: t('chart.mcP50'), data: data.p50, borderColor: '#d4a853', backgroundColor: 'rgba(212,168,83,0.12)', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 },
-        { label: t('chart.mcP10'), data: data.p10, borderColor: 'rgba(212,168,83,0.5)', backgroundColor: 'transparent', borderWidth: 1, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
+        { label: t('chart.mcP90'), data: data.p90.map(displayAmount), borderColor: 'rgba(212,168,83,0.5)', backgroundColor: 'transparent', borderWidth: 1, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
+        { label: t('chart.mcP50'), data: data.p50.map(displayAmount), borderColor: '#d4a853', backgroundColor: 'rgba(212,168,83,0.12)', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 },
+        { label: t('chart.mcP10'), data: data.p10.map(displayAmount), borderColor: 'rgba(212,168,83,0.5)', backgroundColor: 'transparent', borderWidth: 1, pointRadius: 0, pointHoverRadius: 3, borderDash: [2, 4], tension: 0.3 },
       ],
     },
     options: {
@@ -1355,12 +1178,12 @@ function renderChartMC(data) {
           titleColor: '#e8e6f0',
           bodyColor: '#a0a0b8',
           padding: 10,
-          callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` },
+          callbacks: { label: c => ` ${c.dataset.label}: ${fmtDisplayed(c.parsed.y)}` },
         },
       },
       scales: {
         x: { ticks: { color: '#606078', font: { size: 9 }, maxTicksLimit: 14 }, grid: { color: 'rgba(44,44,58,0.4)' } },
-        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
+        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmtDisplayed(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
       },
     },
   });
@@ -1387,9 +1210,9 @@ function renderTable(rows) {
     <th>${t('table.age')}</th><th>${t('table.event')}</th>
     <th>${t('table.income')}</th><th>${t('table.expense')}</th><th>${t('table.savings')}</th>
     <th title="${investColTitle.replace(/"/g, '&quot;')}">${t('table.investCol')}</th>
-    ${accCols.map(n => `<th>${n}</th>`).join('')}
+    ${accCols.map(n => `<th>${escapeHTML(n)}</th>`).join('')}
     <th>${t('table.total')}</th>
-    ${hsCols.map((sc, i) => `<th style="color:${HS_COLORS[i]}">${sc.name}</th>`).join('')}
+    ${hsCols.map((sc, i) => `<th style="color:${HS_COLORS[i]}">${escapeHTML(sc.name)}</th>`).join('')}
   </tr>`;
 
   body.innerHTML = '';
@@ -1401,7 +1224,7 @@ function renderTable(rows) {
     let ageCell = r.age + ageSfx;
     if (r.age === retAge) ageCell += '<span class="retire-tag">' + t('table.retireTag') + '</span>';
 
-    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${e.type}">${e.label}</span>`).join('') : '<span style="color:var(--text3)">—</span>';
+    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${escapeHTML(e.type)}">${escapeHTML(e.label)}</span>`).join('') : '<span style="color:var(--text3)">—</span>';
     const evCell = `<div class="ev-cell-inner">${evContent}</div>`;
     const inc = r.income != null ? fmt(r.income) : '<span style="color:var(--text3)">—</span>';
     const exp = fmt(r.expense);
@@ -1470,7 +1293,7 @@ function render4pct(rows) {
   if (fireProgressEl) fireProgressEl.textContent = t('fire.progress');
 
   const iNow = pN('investAsset');
-  const accNow = accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const accNow = accounts.reduce((s, a) => s + objectMoney(a, 'balance'), 0);
   const nowTotal = iNow + accNow;
 
   let retireTotal = 0;
@@ -1494,6 +1317,7 @@ function render4pct(rows) {
 // RENDER ALL
 // ═══════════════════════════════════════════════════
 function renderAll() {
+  if (!prepareRender()) { saveState(); return; }
   const rows = simulate(currentSc);
   if (chartMode === 'housing' && housingScenarios.length > 0) {
     housingResult = simulateHousing();
@@ -1504,6 +1328,7 @@ function renderAll() {
   renderChart(rows);
   renderTable(rows);
   render4pct(rows);
+  enhanceAccessibility();
   saveState();
 }
 
@@ -1530,14 +1355,7 @@ function setChartMode(mode) {
   if (hsEl) hsEl.style.display = mode === 'housing' ? 'flex' : 'none';
   if (hsTable && mode !== 'housing') hsTable.style.display = 'none';
   updateMcSuccessLabel();
-  if (mode === 'housing' && housingScenarios.length > 0) {
-    housingResult = simulateHousing();
-    renderChartHousing(housingResult);
-    renderHousingTable(housingResult);
-    updateHousingBreakevenLabel(housingResult);
-  } else {
-    renderAll();
-  }
+  renderAll();
 }
 
 function updateMcSuccessLabel() {
@@ -1548,7 +1366,7 @@ function updateMcSuccessLabel() {
     var extra = (mcResult.depletedCount != null && mcResult.depletedCount > 0)
       ? ' (' + mcResult.depletedCount + ' depleted)'
       : '';
-    if (mcResult.pathsIdentical) extra = ' (paths identical – refresh or clear cache)';
+    if (mcResult.pathsIdentical) extra = L(' (identical paths for these inputs)', ' (현재 입력에서 경로가 동일함)');
     el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra;
     el.classList.remove('hidden');
   } else {
@@ -1557,13 +1375,15 @@ function updateMcSuccessLabel() {
 }
 
 function runMonteCarloUI() {
+  if (!prepareRender()) return;
+  document.getElementById('mcStale').hidden = true;
   const btn = document.getElementById('btnRunMC');
   const origText = btn ? btn.textContent : '';
   if (btn) {
     btn.disabled = true;
     btn.textContent = t('chart.mcRunning');
   }
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     try {
       runMonteCarlo();
       updateMcSuccessLabel();
@@ -1584,10 +1404,11 @@ function addAccount(opts = {}) {
   const id = ++acid;
   accounts.push({
     id,
+    currency: opts.currency || 'USD',
     type: opts.type || 'roth',
     name: opts.name || '',
     balance: opts.balance || '',
-    rate: opts.rate || '7',
+    rate: opts.rate ?? '7',
     contribSelf: opts.contribSelf || '',
     contribSelfRate: opts.contribSelfRate || '',
     contribEmployer: opts.contribEmployer || '',
@@ -1605,7 +1426,9 @@ function addAccount(opts = {}) {
 }
 
 function removeAccount(id) {
+  rememberUndo();
   accounts = accounts.filter(a => a.id !== id);
+  events.forEach(e => { if (Number(e.drainAccountId) === id) delete e.drainAccountId; });
   renderAccountList();
   renderAll();
 }
@@ -1617,7 +1440,11 @@ function updateAccount(id, field, value) {
   if (field === 'name') {
     const nameEl = document.querySelector('#ac-' + id + ' .acc-name');
     if (nameEl) nameEl.textContent = value || getAccTypeLabel(a.type);
-  } else if (['type', 'employerMatchMode'].includes(field)) {
+  } else if (field === 'balance') {
+    const el = document.querySelector('#ac-' + id + ' .acc-bal');
+    try { if (el) el.textContent = nativeMoney(NWCore.number(value), a.currency); }
+    catch (_) { if (el) el.textContent = '—'; }
+  } else if (['type', 'employerMatchMode', 'currency'].includes(field)) {
     renderAccountList();
   }
   renderAll();
@@ -1637,7 +1464,8 @@ function renderAccountList() {
   if (accounts.length === 0) { if (nm) nm.style.display = ''; return; }
   if (nm) nm.style.display = 'none';
 
-  for (const a of accounts) {
+  for (const raw of accounts) {
+    const a = safeRecord(raw);
     const accType = ACC_TYPES[a.type] || ACC_TYPES.roth;
     const empMode = a.employerMatchMode || (a.contribEmployerRate ? 'percent' : 'fixed');
     const card = document.createElement('div');
@@ -1645,7 +1473,8 @@ function renderAccountList() {
     card.id = 'ac-' + a.id;
     const typeLabel = getAccTypeLabel(a.type);
     const typeDesc = getAccTypeDesc(a.type);
-    const balFmt = a.balance ? fmt(parseFloat(a.balance)) : (CURRENCY === 'KRW' ? '₩0' : '$0');
+    let balFmt = '—';
+    try { balFmt = nativeMoney(NWCore.number(raw.balance), raw.currency); } catch (_) {}
     card.innerHTML = `
       <div class="acc-head" onclick="toggleAcc(${a.id})">
         <span class="acc-badge ${accType.badge}">${typeLabel}</span>
@@ -1654,6 +1483,7 @@ function renderAccountList() {
         <span class="acc-toggle">▼</span>
       </div>
       <div class="acc-body">
+        ${currencySelect(a.currency, `updateAccount(${a.id},'currency',this.value)`)}
         <div class="field"><label>${t('acc.type')}</label>
           <select class="acc-sel" onchange="updateAccount(${a.id},'type',this.value)">
             ${Object.keys(ACC_TYPES).map(k => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${getAccTypeLabel(k)}</option>`).join('')}
@@ -1665,7 +1495,7 @@ function renderAccountList() {
         </div>
         <div class="row2">
           <div class="field"><label>${t('acc.balance')}</label>
-            <div class="iw"><input class="acc-num" type="text" value="${a.balance}" placeholder="0" oninput="updateAccount(${a.id},'balance',this.value)"><span class="sfx">${t('currencySfx')}</span></div>
+            <div class="iw"><input class="acc-num" type="text" value="${a.balance}" placeholder="0" oninput="updateAccount(${a.id},'balance',this.value)"><span class="sfx">${a.currency}</span></div>
           </div>
           <div class="field"><label>${t('acc.rate')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.rate}" placeholder="7" oninput="updateAccount(${a.id},'rate',this.value)"><span class="sfx">%</span></div>
@@ -1674,7 +1504,7 @@ function renderAccountList() {
         <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;font-weight:600;">${t('acc.contribNote')}</div>
         <div class="row2">
           <div class="field"><label>${t('acc.contribSelf')}</label>
-            <div class="iw"><input class="acc-num" type="text" value="${a.contribSelf}" placeholder="0" oninput="updateAccount(${a.id},'contribSelf',this.value)"><span class="sfx">${t('currencySfx')}</span></div>
+            <div class="iw"><input class="acc-num" type="text" value="${a.contribSelf}" placeholder="0" oninput="updateAccount(${a.id},'contribSelf',this.value)"><span class="sfx">${a.currency}</span></div>
           </div>
           <div class="field"><label>${t('acc.contribSelfPct')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.contribSelfRate}" placeholder="0" oninput="updateAccount(${a.id},'contribSelfRate',this.value)"><span class="sfx">%</span></div>
@@ -1689,7 +1519,7 @@ function renderAccountList() {
         </div>
         <div class="row2 employer-opt employer-fixed" style="display:${empMode === 'fixed' ? 'grid' : 'none'}">
           <div class="field"><label>${t('acc.empAmount')}</label>
-            <div class="iw"><input class="acc-num" type="text" value="${a.contribEmployer}" placeholder="0" oninput="updateAccount(${a.id},'contribEmployer',this.value)"><span class="sfx">${t('currencySfx')}</span></div>
+            <div class="iw"><input class="acc-num" type="text" value="${a.contribEmployer}" placeholder="0" oninput="updateAccount(${a.id},'contribEmployer',this.value)"><span class="sfx">${a.currency}</span></div>
           </div>
           <div class="field"></div>
         </div>
@@ -1740,6 +1570,7 @@ function addEvent(opts = {}) {
   const id = ++eid;
   const ev = {
     id,
+    currency: opts.currency || 'USD',
     type: opts.type || 'income',
     name: opts.name || '',
     age: opts.age || (pN('currentAge') + 5),
@@ -1752,6 +1583,7 @@ function addEvent(opts = {}) {
 }
 
 function removeEvent(id) {
+  rememberUndo();
   events = events.filter(e => e.id !== id);
   renderEventList();
   renderAll();
@@ -1760,22 +1592,14 @@ function removeEvent(id) {
 function updateEvent(id, field, value) {
   const ev = events.find(e => e.id === id);
   if (!ev) return;
-  if (field === 'value') {
-    const num = parseMoney(value);
-    value = String(Math.round(num));
-    ev.value = value;
-    const inp = document.getElementById('ev-value-' + id);
-    if (inp && inp.value !== value) inp.value = value;
-  } else {
-    ev[field] = value;
-  }
+  ev[field] = value;
   if (field === 'name') {
     const lbl = document.querySelector('#ev-' + id + ' .ev-lbl');
     if (lbl) lbl.textContent = value || t('ev.noName');
   } else if (field === 'age') {
     const tag = document.querySelector('#ev-' + id + ' .ev-age-tag');
     if (tag) tag.textContent = value + t('ageSfx');
-  } else if (field === 'type') {
+  } else if (['type', 'currency'].includes(field)) {
     renderEventList();
   }
   renderAll();
@@ -1803,11 +1627,12 @@ function renderEventList() {
     'lumpsum-in': ['ebadge-lumpsum-in', 'evBadge.lumpsum-in'],
   };
   const sorted = [...events].sort((a, b) => parseInt(a.age) - parseInt(b.age));
-  for (const ev of sorted) {
+  for (const raw of sorted) {
+    const ev = safeRecord(raw);
     const [bc, blKey] = BADGES[ev.type] || ['ebadge-income', 'evBadge.default'];
     const bl = t(blKey);
     const isLump = ev.type.startsWith('lumpsum');
-    const sfx = isLump ? t('currencySfx') : t('currencySfxYr');
+    const sfx = ev.currency + (isLump ? '' : L('/yr', '/년'));
     const card = document.createElement('div');
     card.className = 'ev-card';
     card.id = 'ev-' + ev.id;
@@ -1819,6 +1644,7 @@ function renderEventList() {
         <span class="ev-tog">▼</span>
       </div>
       <div class="ev-body">
+        ${currencySelect(ev.currency, `updateEvent(${ev.id},'currency',this.value)`)}
         <div class="field"><label>${t('ev.kind')}</label>
           <select class="acc-sel" onchange="updateEvent(${ev.id},'type',this.value)">
             <option value="income" ${ev.type === 'income' ? 'selected' : ''}>${t('ev.income')}</option>
@@ -1874,7 +1700,7 @@ function addHousingScenario(type) {
   if (housingScenarios.length >= 3) return;
   const id = ++hsid;
   housingScenarios.push({
-    id, type: type || 'buy', name: '', enabled: true,
+    id, currency: 'USD', type: type || 'buy', name: '', enabled: true,
     startAge: pN('retireAge') || 50,
     purchasePrice: 500000, appreciationRate: 3, annualMaintenance: 5000,
     ltvRatio: 60, loanRate: 4.5, loanTerm: 30, loanType: 'amortizing',
@@ -1886,6 +1712,7 @@ function addHousingScenario(type) {
 }
 
 function removeHousingScenario(id) {
+  rememberUndo();
   housingScenarios = housingScenarios.filter(h => h.id !== id);
   renderHousingScenarioList();
   saveState();
@@ -1894,15 +1721,10 @@ function removeHousingScenario(id) {
 function updateHousingScenario(id, field, value) {
   const h = housingScenarios.find(x => x.id === id);
   if (!h) return;
-  if (['startAge', 'purchasePrice', 'appreciationRate', 'annualMaintenance',
-       'ltvRatio', 'loanRate', 'loanTerm', 'deposit', 'depositRenewalRate',
-       'renewalCycle', 'monthlyRent', 'rentDeposit', 'rentIncreaseRate'].includes(field)) {
-    h[field] = parseFloat(value) || 0;
-  } else {
-    h[field] = value;
-  }
-  if (field === 'type') renderHousingScenarioList();
-  saveState();
+  h[field] = value;
+  if (['type', 'currency'].includes(field)) renderHousingScenarioList();
+  housingResult = null;
+  renderAll();
 }
 
 function openHousingModal() {
@@ -1910,9 +1732,12 @@ function openHousingModal() {
   if (!overlay) return;
   overlay.style.display = 'flex';
   renderHousingScenarioList();
+  setupDialog(overlay, closeHousingModal);
+  overlay.querySelector('button, input, select')?.focus();
 }
 
 function closeHousingModal() {
+  releaseDialog('housingModalOverlay');
   const overlay = document.getElementById('housingModalOverlay');
   if (overlay) overlay.style.display = 'none';
 }
@@ -1931,7 +1756,7 @@ function renderHousingScenarioList() {
   }
 
   for (let idx = 0; idx < housingScenarios.length; idx++) {
-    const h = housingScenarios[idx];
+    const h = safeRecord(housingScenarios[idx]);
     const letter = String.fromCharCode(65 + idx);
     const color = HS_COLORS[idx];
 
@@ -1948,6 +1773,7 @@ function renderHousingScenarioList() {
         <button class="btn-del" onclick="removeHousingScenario(${h.id})">${t('housing.delete')}</button>
       </div>
       <div class="hs-card-fields">
+        ${currencySelect(h.currency, `updateHousingScenario(${h.id},'currency',this.value)`)}
         <div class="row2">
           <div class="field"><label>${t('housing.startAge')}</label>
             <div class="iw"><input class="acc-num" type="number" value="${h.startAge}" min="1" max="99"
@@ -1960,14 +1786,14 @@ function renderHousingScenarioList() {
         <div class="row2">
           <div class="field"><label>${t('housing.purchasePrice')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${h.purchasePrice}"
-              oninput="updateHousingScenario(${h.id},'purchasePrice',this.value)"><span class="sfx">${t('currencySfx')}</span></div></div>
+              oninput="updateHousingScenario(${h.id},'purchasePrice',this.value)"><span class="sfx">${h.currency}</span></div></div>
           <div class="field"><label>${t('housing.appreciationRate')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${h.appreciationRate}"
               oninput="updateHousingScenario(${h.id},'appreciationRate',this.value)"><span class="sfx">%</span></div></div>
         </div>
         <div class="field"><label>${t('housing.annualMaintenance')}</label>
           <div class="iw"><input class="acc-num" type="text" value="${h.annualMaintenance}"
-            oninput="updateHousingScenario(${h.id},'annualMaintenance',this.value)"><span class="sfx">${t('currencySfxYr')}</span></div></div>
+            oninput="updateHousingScenario(${h.id},'annualMaintenance',this.value)"><span class="sfx">${h.currency}${L('/yr', '/년')}</span></div></div>
         <div class="hs-loan-section">
           <div class="hs-loan-title">${t('housing.loanSection')}</div>
           <div class="row2">
@@ -1994,7 +1820,7 @@ function renderHousingScenarioList() {
         <div class="row2">
           <div class="field"><label>${t('housing.deposit')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${h.deposit}"
-              oninput="updateHousingScenario(${h.id},'deposit',this.value)"><span class="sfx">${t('currencySfx')}</span></div></div>
+              oninput="updateHousingScenario(${h.id},'deposit',this.value)"><span class="sfx">${h.currency}</span></div></div>
           <div class="field"><label>${t('housing.depositRenewalRate')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${h.depositRenewalRate}"
               oninput="updateHousingScenario(${h.id},'depositRenewalRate',this.value)"><span class="sfx">%</span></div></div>
@@ -2010,10 +1836,10 @@ function renderHousingScenarioList() {
         <div class="row2">
           <div class="field"><label>${t('housing.monthlyRent')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${h.monthlyRent}"
-              oninput="updateHousingScenario(${h.id},'monthlyRent',this.value)"><span class="sfx">${t('currencySfxMonthly')}</span></div></div>
+              oninput="updateHousingScenario(${h.id},'monthlyRent',this.value)"><span class="sfx">${h.currency}${L('/mo', '/월')}</span></div></div>
           <div class="field"><label>${t('housing.rentDeposit')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${h.rentDeposit}"
-              oninput="updateHousingScenario(${h.id},'rentDeposit',this.value)"><span class="sfx">${t('currencySfx')}</span></div></div>
+              oninput="updateHousingScenario(${h.id},'rentDeposit',this.value)"><span class="sfx">${h.currency}</span></div></div>
         </div>
         <div class="row2">
           <div class="field"><label>${t('housing.rentIncreaseRate')}</label>
@@ -2035,6 +1861,8 @@ function renderHousingScenarioList() {
   </div>`;
 
   modal.innerHTML = html;
+  modal.querySelector('.housing-modal-title').id = 'housingModalOverlay-title';
+  enhanceAccessibility(modal);
 }
 
 // ── Housing Simulation ──
@@ -2060,10 +1888,10 @@ function simulateHousing() {
       const age = baseRows[i].age;
       const baseNW = baseRows[i].totalLiquid;
 
-      if (age === hs.startAge) {
+      if (age === Number(hs.startAge)) {
         started = true;
         if (hs.type === 'buy') {
-          const price = parseMoney(hs.purchasePrice);
+          const price = objectMoney(hs, 'purchasePrice');
           const ltv = (parseFloat(hs.ltvRatio) || 0) / 100;
           const downPayment = price * (1 - ltv);
           loanBalance = price * ltv;
@@ -2076,14 +1904,14 @@ function simulateHousing() {
             pmt = r > 0 ? loanBalance * r / (1 - Math.pow(1 + r, -n)) : loanBalance / n;
           }
         } else if (hs.type === 'jeonse') {
-          currentDeposit = parseMoney(hs.deposit);
+          currentDeposit = objectMoney(hs, 'deposit');
           investDelta -= currentDeposit;
           depositHeld = currentDeposit;
         } else if (hs.type === 'rent') {
-          const dep = parseMoney(hs.rentDeposit) || 0;
+          const dep = objectMoney(hs, 'rentDeposit') || 0;
           investDelta -= dep;
           depositHeld = dep;
-          annualRent = (parseMoney(hs.monthlyRent) || 0) * 12;
+          annualRent = (objectMoney(hs, 'monthlyRent') || 0) * 12;
         }
       }
 
@@ -2093,7 +1921,7 @@ function simulateHousing() {
 
         if (hs.type === 'buy') {
           propertyValue *= (1 + (parseFloat(hs.appreciationRate) || 0) / 100);
-          const maint = parseMoney(hs.annualMaintenance) || 0;
+          const maint = objectMoney(hs, 'annualMaintenance') || 0;
           investDelta -= maint;
           cumulativeCost += maint;
           if (loanBalance > 0) {
@@ -2182,7 +2010,7 @@ function renderChartHousing(data) {
 
   const datasets = data.scenarios.map((sc, i) => ({
     label: sc.name,
-    data: sc.rows.map(r => Math.round(r.netWorth)),
+    data: sc.rows.map(r => displayAmount(r.netWorth)),
     borderColor: HS_COLORS[i % 3],
     backgroundColor: i === 0 ? 'rgba(212,168,83,0.07)' : 'transparent',
     borderWidth: i === 0 ? 2.5 : 2,
@@ -2202,12 +2030,12 @@ function renderChartHousing(data) {
         tooltip: {
           backgroundColor: '#1e1e27', borderColor: '#2c2c3a', borderWidth: 1,
           titleColor: '#e8e6f0', bodyColor: '#a0a0b8', padding: 10,
-          callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` },
+          callbacks: { label: c => ` ${c.dataset.label}: ${fmtDisplayed(c.parsed.y)}` },
         },
       },
       scales: {
         x: { ticks: { color: '#606078', font: { size: 9 }, maxTicksLimit: 14 }, grid: { color: 'rgba(44,44,58,0.4)' } },
-        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
+        y: { ticks: { color: '#606078', font: { size: 9, family: 'DM Mono' }, callback: v => fmtDisplayed(v) }, grid: { color: 'rgba(44,44,58,0.4)' } },
       },
     },
   });
@@ -2226,7 +2054,7 @@ function renderHousingTable(data) {
 
   let html = '<table><thead><tr><th>' + t('housing.tableNetWorth') + '</th>';
   data.scenarios.forEach((sc, i) => {
-    html += `<th style="color:${HS_COLORS[i]}">${sc.name}</th>`;
+    html += `<th style="color:${HS_COLORS[i]}">${escapeHTML(sc.name)}</th>`;
   });
   html += '</tr></thead><tbody>';
 
@@ -2236,9 +2064,9 @@ function renderHousingTable(data) {
     const hs = housingScenarios.find(h => h.id === sc.id);
     let initial = 0;
     if (hs) {
-      if (hs.type === 'buy') initial = parseMoney(hs.purchasePrice) * (1 - (parseFloat(hs.ltvRatio) || 0) / 100);
-      else if (hs.type === 'jeonse') initial = parseMoney(hs.deposit);
-      else if (hs.type === 'rent') initial = parseMoney(hs.rentDeposit) || 0;
+      if (hs.type === 'buy') initial = objectMoney(hs, 'purchasePrice') * (1 - (parseFloat(hs.ltvRatio) || 0) / 100);
+      else if (hs.type === 'jeonse') initial = objectMoney(hs, 'deposit');
+      else if (hs.type === 'rent') initial = objectMoney(hs, 'rentDeposit') || 0;
     }
     html += `<td>${fmt(initial)}</td>`;
   }
@@ -2250,7 +2078,7 @@ function renderHousingTable(data) {
     for (const sc of data.scenarios) {
       const hs = housingScenarios.find(h => h.id === sc.id);
       if (hs && hs.type === 'buy') {
-        html += `<td>${fmt(parseMoney(hs.purchasePrice) * (parseFloat(hs.ltvRatio) || 0) / 100)}</td>`;
+        html += `<td>${fmt(objectMoney(hs, 'purchasePrice') * (parseFloat(hs.ltvRatio) || 0) / 100)}</td>`;
       } else {
         html += '<td style="color:var(--text3)">—</td>';
       }
@@ -2312,56 +2140,10 @@ function updateHousingBreakevenLabel(data) {
 
 function runHousingComparison() {
   closeHousingModal();
-  if (housingScenarios.length === 0) return;
-  chartMode = 'housing';
-  document.getElementById('chartModeSingle')?.classList.remove('active');
-  document.getElementById('chartModeMC')?.classList.remove('active');
-  document.getElementById('chartModeHousing')?.classList.add('active');
-  document.getElementById('mc-controls').style.display = 'none';
-  document.getElementById('scenarioBar').style.display = 'none';
-  document.getElementById('housing-controls').style.display = 'flex';
-  housingResult = simulateHousing();
-  renderChartHousing(housingResult);
-  renderHousingTable(housingResult);
-  updateHousingBreakevenLabel(housingResult);
-  saveState();
+  setChartMode('housing');
 }
 
-// ═══════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════
-function init() {
-  applyLocale();
-  document.body.addEventListener('click', function (e) {
-    const btn = e.target.id === 'btnAddAccount' ? e.target : (e.target.closest && e.target.closest('#panel-accounts .btn-add'));
-    if (btn) {
-      e.preventDefault();
-      e.stopPropagation();
-      addAccount();
-    }
-  }, true);
-  document.querySelectorAll('input[id]').forEach(inp => {
-    inp.addEventListener('input', renderAll);
-    inp.addEventListener('change', renderAll);
-  });
-
-  const hasSaved = loadState();
-  if (hasSaved) {
-    renderAccountList();
-    renderEventList();
-    ['base', 'opt', 'pes'].forEach(t => document.getElementById('tab-' + t)?.classList.toggle('active', t === currentSc));
-    renderAll();
-  } else {
-    const isEn = LOCALE === 'en';
-    addAccount({ type: 'roth', name: isEn ? 'Roth IRA (US)' : 'Roth IRA (미국)', balance: '15000', rate: '7', contribSelf: '7000', contribEmployer: '0', withdrawTaxRate: '0', retireDrawAge: '59' });
-    addAccount({ type: 'pension_kr', name: isEn ? 'Pension fund (Korea)' : '연금저축펀드 (한국)', balance: '5000', rate: '5', contribSelf: '3000', contribEmployer: '0', withdrawTaxRate: '3.3', retireDrawAge: '55' });
-    addEvent({ type: 'income', name: isEn ? 'Promotion / raise' : '승진 / 연봉 인상', age: 35, value: 110000 });
-    addEvent({ type: 'lumpsum-out', name: isEn ? 'Home purchase (down payment)' : '집 구매 (다운페이)', age: 38, value: 80000 });
-    addEvent({ type: 'lumpsum-in', name: isEn ? 'Real estate sale' : '부동산 매각', age: 50, value: 300000 });
-    addEvent({ type: 'expense', name: isEn ? 'Post-retirement expense adjustment' : '은퇴 후 생활비 조정', age: 55, value: 40000 });
-    renderAll();
-  }
-}
+function init() { setupWorkspace(); }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
