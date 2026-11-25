@@ -1,4 +1,6 @@
 async function runEventDateTests({ assert, equal, near, throws }) {
+  const portion = (from, to) => (Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) /
+    (Date.UTC(Number(from.slice(0, 4)) + 1, 0, 1) - Date.UTC(Number(from.slice(0, 4)), 0, 1));
   const base = NWCore.emptyState();
   base.projectionStartDate = '2030-07-01';
   Object.assign(base.inputs, { currentAge: '30', retireAge: '55', returnRate: '0', inflation: '0', wageGrowthRate: '0' });
@@ -44,17 +46,18 @@ async function runEventDateTests({ assert, equal, near, throws }) {
     event(1, 'income', '2031-10-01', 200),
     event(2, 'income', '2031-02-01', 100),
   ]);
-  near(rows[1].income, 200, 'Same-year income replacements follow actual date order');
+  near(rows[1].income, 100 * portion('2031-02-01', '2031-10-01') + 200 * portion('2031-10-01', '2032-01-01'),
+    'Same-year income replacements use the actual interval at each rate');
   rows = load([event(1, 'income-add', '2031-06-01', 100, { endDate: '2033-01-01' })]);
-  near(rows[1].income, 100, 'Recurring addition starts in start year');
+  near(rows[1].income, 100 * portion('2031-06-01', '2032-01-01'), 'Recurring addition is prorated from its actual start date');
   near(rows[2].income, 100, 'Recurring addition continues through overlapping year');
   near(rows[3].income, 0, 'January 1 end excludes that calendar year');
   assert(document.getElementById('event-end-date-1').type === 'date', 'Recurring event uses an end-date picker');
   updateEvent(1, 'endDate', '2033-06-01');
-  near(simulate()[3].income, 100, 'Midyear end includes full overlapping annual bucket');
+  near(simulate()[3].income, 100 * portion('2033-01-01', '2033-06-01'), 'Midyear end includes only active days');
   near(simulate()[4].income, 0, 'Recurring addition stops after final overlapping year');
   rows = load([event(1, 'expense-add', '2031-06-01', 80, { endDate: '2031-12-01' })]);
-  near(rows[1].expense, 80, 'Same-year recurring interval counts one annual bucket');
+  near(rows[1].expense, 80 * portion('2031-06-01', '2031-12-01'), 'Same-year recurring interval counts only active days');
   near(rows[2].expense, 0, 'Same-year recurring interval does not leak into next year');
   const sameDay = getStateForExport();
   sameDay.events[0].endDate = sameDay.events[0].date;

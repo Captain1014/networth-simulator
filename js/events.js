@@ -1,6 +1,13 @@
-/* Calendar-date UI; financial calculations remain annual. */
+/* Calendar-date UI for the dated ledger and annual report buckets. */
 function eventScheduleState() {
   return { projectionStartDate: W.state.projectionStartDate, inputs: { currentAge: pN('currentAge') } };
+}
+function renderProjectionPeriodNote(row) {
+  const el = document.getElementById('projectionPeriodNote');
+  if (!el || !row) return;
+  el.textContent = `${row.periodStart} – ${row.periodEnd} · ${row.periodDays}/${row.yearDays}${L(' days', '일')}. ` +
+    L('The first table row uses this period; inputs and annual summaries remain annual rates.',
+      '첫 테이블 행은 이 기간만 계산합니다. 입력 금액과 연간 요약은 연간 기준입니다.');
 }
 function formatEventDate(value) {
   try {
@@ -12,7 +19,9 @@ function formatEventDate(value) {
 }
 function yearAgeLabel(row) {
   const year = row.year ?? NWCore.yearAtAge(row.age, eventScheduleState());
-  return `${year} · ${row.age}${t('ageSfx')}`;
+  const partial = row.yearFraction != null && row.yearFraction < 1
+    ? ` · ${row.periodDays}/${row.yearDays}${L('d', '일')}` : '';
+  return `${year} · ${row.age}${t('ageSfx')}${partial}`;
 }
 function eventWhenLabel(event) {
   if (event.date) return formatEventDate(event.date);
@@ -53,11 +62,15 @@ function renderEventTimeline() {
   const state = eventScheduleState();
   try {
     NWCore.date(state.projectionStartDate);
-    const sorted = [...events].sort((a, b) => NWCore.eventSortKey(a, state).localeCompare(NWCore.eventSortKey(b, state)) || a.id - b.id);
+    const source = typeof financeTimelineItems === 'function' ? financeTimelineItems() : events;
+    const sorted = [...source].sort((a, b) => NWCore.eventSortKey(a, state).localeCompare(NWCore.eventSortKey(b, state)) ||
+      String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
     for (const event of sorted) {
       let status = '';
       const age = NWCore.eventAge(event, state);
-      if (age < Number(state.inputs.currentAge)) status = L('Before projection · not reapplied', '예측 시작 이전 · 계산에 재반영하지 않음');
+      if (event.enabled === false) status = L('Disabled scenario / record', '비활성 시나리오·항목');
+      else if (event.status === 'unknown') status = L('Unconfirmed · not forecast', '미확인 · 예측 제외');
+      else if (age < Number(state.inputs.currentAge)) status = L('Before projection · not reapplied', '예측 시작 이전 · 계산에 재반영하지 않음');
       else if (age > 100) status = L('Beyond projection horizon', '예측 기간 이후');
       else if (!event.date) status = L('Age-based · exact date not set', '나이 기준 · 정확한 날짜 미지정');
       else status = event.date < NWCore.today() ? L('Past', '지난 일정') : event.date === NWCore.today() ? L('Today', '오늘') : L('Upcoming', '예정');
@@ -66,7 +79,12 @@ function renderEventTimeline() {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'event-timeline-button';
-      button.addEventListener('click', () => focusLifeEvent(event.id));
+      button.addEventListener('click', () => {
+        if (!event.financeRef) { focusLifeEvent(event.id); return; }
+        openFinanceSettings();
+        const section = document.getElementById('finance-record-' + event.financeRef);
+        if (section) { section.open = true; section.scrollIntoView({ block: 'nearest' }); section.querySelector('input, select')?.focus(); }
+      });
       const when = document.createElement(event.date ? 'time' : 'span');
       if (event.date) when.dateTime = event.date;
       when.className = 'event-timeline-date';
@@ -81,7 +99,7 @@ function renderEventTimeline() {
         'expense-add': 'ev.expenseAdd', 'lumpsum-in': 'ev.lumpIn', 'lumpsum-out': 'ev.lumpOut',
       }[event.type];
       let amount = '—';
-      try { amount = nativeMoney(NWCore.number(event.value), event.currency); } catch (_) {}
+      try { if (event.value != null && event.value !== '') amount = nativeMoney(NWCore.number(event.value), event.currency); } catch (_) {}
       detail.textContent = `${t(kind || 'ev.noName')} · ${amount} · ${status}` +
         (event.endDate ? ` · ${L('Until', '종료')} ${formatEventDate(event.endDate)}` : '');
       button.append(when, name, detail);
@@ -93,7 +111,7 @@ function renderEventTimeline() {
     item.textContent = L('Check event dates and the projection start date to view the timeline.', '타임라인을 보려면 이벤트 날짜와 예측 시작 날짜를 확인하세요.');
     list.appendChild(item);
   }
-  list.hidden = !events.length;
+  list.hidden = list.childElementCount === 0;
 }
 function setupEventDates() {
   const field = document.createElement('div');
@@ -112,10 +130,14 @@ function setupEventDates() {
     renderAll();
   });
   field.append(label, input);
+  const periodNote = document.createElement('p');
+  periodNote.id = 'projectionPeriodNote';
+  periodNote.className = 'event-timing-help';
+  field.appendChild(periodNote);
   document.querySelector('#panel-basic .section').appendChild(field);
   const intro = document.createElement('p');
   intro.className = 'event-timing-help';
-  intro.textContent = L('Choose exact dates and follow your events below. Financial forecasts remain yearly.', '날짜를 선택하고 아래 타임라인에서 일정을 확인하세요. 재무 예측은 연 단위로 계산됩니다.');
+  intro.textContent = L('Choose exact dates and follow your events below. The dated ledger is summarized by calendar year.', '날짜를 선택하고 아래 타임라인에서 일정을 확인하세요. 날짜별 계산 결과를 연도별로 요약합니다.');
   const details = document.createElement('details');
   details.className = 'event-date-details';
   const summary = document.createElement('summary');
@@ -123,8 +145,8 @@ function setupEventDates() {
   const note = document.createElement('p');
   note.className = 'event-timing-help';
   note.textContent = L(
-    'Dates are tracked exactly; finances are projected yearly, not daily. Events apply in their calendar year. Recurring additions use a full annual amount for each overlapping year (no proration); a Jan 1 end date excludes that year. Events before the projection start are history and are not reapplied to balances.',
-    '날짜는 정확히 기록하지만 재무 예측은 일별이 아닌 연 단위입니다. 해당 연도에 이벤트를 반영하며, 반복 추가 수입·지출은 기간이 겹치는 해마다 연간 금액 전체를 적용합니다(일할 계산 없음). 1월 1일 종료는 해당 연도를 제외합니다. 예측 시작 이전 이벤트는 기록으로만 표시하며 잔액에 재반영하지 않습니다.');
+    'The first row covers the remaining calendar year; later rows cover full calendar years. In every year, recurring flows use their actual active dates: monthly amounts use month overlap, annual rates use actual year days. Accrued flows settle at month end unless a payment day is entered. Lump sums settle in full on their date, and returns compound over elapsed time. End dates are exclusive. Events before projection start are not replayed.',
+    '첫 행은 해당 연도 남은 기간, 이후 행은 전체 연도를 표시합니다. 모든 연도에서 반복 흐름의 실제 시작·종료일을 반영하며 월 금액은 월별 겹치는 기간, 연 금액은 해당 연도 실제 일수로 계산합니다. 지급일을 지정하지 않은 누적 수입·지출은 월말에 정산합니다. 목돈은 지정 날짜에 전액 반영하고 수익률은 경과 기간만 복리 적용합니다. 종료 날짜는 제외하며 예측 시작 이전 이벤트는 재반영하지 않습니다.');
   const timeline = document.createElement('ol');
   timeline.id = 'eventTimeline';
   timeline.className = 'event-timeline';

@@ -10,12 +10,24 @@ import re
 import subprocess
 import tempfile
 import threading
+import time
 import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RESULTS = queue.Queue()
 CHART_URL = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+
+class BrowserProfile(tempfile.TemporaryDirectory):
+    def cleanup(self):
+        # Chrome helpers can finish profile writes just after the parent exits.
+        for attempt in range(10):
+            try:
+                return super().cleanup()
+            except OSError as error:
+                if error.errno != 66 or attempt == 9:
+                    raise
+                time.sleep(0.2)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -76,7 +88,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             </script>"""
             html = re.sub(r'(<script src="[^"]*js/workspace\.js(?:\?[^"]*)?"></script>)',
                           lambda match: setup + match.group(0), html)
-            html = html.replace("</body>", '<script src="/tests/event-dates.js"></script><script src="/tests/event-currencies.js"></script><script src="/tests/integration.js"></script></body>')
+            html = html.replace("</body>", '<script src="/tests/event-dates.js"></script><script src="/tests/event-currencies.js"></script><script src="/tests/finance-ui.js"></script><script src="/tests/integration.js"></script></body>')
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
@@ -97,15 +109,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--chrome", default="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    parser.add_argument("--finance-only", action="store_true")
     args = parser.parse_args()
-    chart = urllib.request.urlopen(CHART_URL, timeout=20).read()
+    chart = b"" if args.finance_only else urllib.request.urlopen(CHART_URL, timeout=20).read()
     handler = functools.partial(Handler, directory=str(ROOT))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     server.chart = chart
     threading.Thread(target=server.serve_forever, daemon=True).start()
     failures = 0
     try:
-        for page, case, size in [
+        cases = [
+            ("/tests/finance.html", "finance", "1280,900"),
             ("/eng/", "normal", "1280,900"), ("/", "normal", "1280,900"),
             ("/ko/", "normal", "390,844"), ("/eng/", "normal", "390,844"),
             ("/eng/", "corrupt", "1280,900"), ("/eng/", "legacy", "1280,900"),
@@ -113,8 +127,11 @@ def main():
             ("/eng/", "offline-empty", "390,844"), ("/eng/", "offline-bad-cache", "1280,900"),
             ("/eng/", "legacy-edited", "1280,900"), ("/ko/", "legacy-edited", "390,844"),
             ("/eng/", "legacy-import", "1280,900"),
-        ]:
-            with tempfile.TemporaryDirectory(prefix="networth-test-") as profile:
+        ]
+        if args.finance_only:
+            cases = cases[:1]
+        for page, case, size in cases:
+            with BrowserProfile(prefix="networth-test-") as profile:
                 url = f"http://127.0.0.1:{server.server_port}{page}?case={case}"
                 with tempfile.TemporaryFile() as logs:
                     proc = subprocess.Popen([

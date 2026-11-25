@@ -50,7 +50,9 @@ function runEventCurrencyTests({ assert, equal, near }) {
   near(rows[1].expense, 11, 'Unchanged USD expense retains inflation after KRW replacement');
   near(rows[2].expense, 12.1, 'Per-currency expense inflation continues after replacement');
   rows = load([event(1, 'income', 'USD', 300, '2034-02-01'), event(2, 'income', 'USD', 500, '2034-10-01')]);
-  near(rows[1].income, 600, 'Latest same-currency replacement wins without clearing the other currency');
+  near(rows[1].income, 100 + (100 * 31 + 300 * 242 + 500 * 92) / 365,
+    'Same-currency changes use dated portions without clearing the other currency');
+  near(rows[2].income, 600, 'Latest same-currency replacement persists for following full years');
   rows = load([
     event(1, 'income-add', 'USD', 25), event(2, 'income', 'KRW', 0),
     event(3, 'expense-add', 'USD', 15), event(4, 'expense', 'KRW', 0),
