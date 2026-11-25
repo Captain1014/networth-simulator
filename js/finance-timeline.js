@@ -49,6 +49,12 @@
       if (scenario.status !== 'confirmed') warn(`Scenario provisional / 잠정 시나리오: ${scenario.name || scenario.id}`);
     }
     const ageDate = value => `${year(start) + Number(value) - startAge}-01-01`;
+    const allocations = f.allocations.filter(enabled);
+    for (const rule of allocations) {
+      cut(rule.start); cut(rule.end);
+      const missing = NWFinanceState.allocationIssues(state, rule);
+      if (missing.length) warn(`Automatic investment paused; inputs missing / 자동 투자 입력 필요: ${rule.name} (${missing.join(', ')})`);
+    }
     const eventDate = e => e.date || (Number(e.age) === startAge ? start : ageDate(e.age));
     const dbBenefits = [];
     for (const benefit of f.dbBenefits.filter(enabled)) {
@@ -241,7 +247,7 @@
     }
     for (const list of operations.values()) list.sort((a, b) => a.priority - b.priority || (Number(a.data?.id) || 0) - (Number(b.data?.id) || 0));
     return { state, f, start, end, retireDate, startAge, lastYear, flows, operations, segments,
-      scenarios, grants, espp, dbBenefits, useTarget, targets, warnings: [...warnings], usd, money, ageDate };
+      scenarios, grants, espp, dbBenefits, allocations, useTarget, targets, warnings: [...warnings], usd, money, ageDate };
   }
   window.NWFinanceTimeline = { compile, yearFraction, ms, iso };
 })();

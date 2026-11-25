@@ -28,7 +28,7 @@
       employeeContributions: 0, employerContributions: 0, esppDeductions: 0,
       debtPayments: 0, debtInterest: 0, transfers: 0, withdrawals: 0,
       shortfall: 0, skippedContributions: 0, dbBenefitCash: 0, dbBenefitTransfers: 0,
-      events: [], accSnapshot: [],
+      autoInvested: 0, events: [], accSnapshot: [],
     };
   }
   function simulate(input, options = {}) {
@@ -40,6 +40,8 @@
     const inf = pct(Number(s.inputs.inflation));
     const wage = pct(Number(s.inputs.wageGrowthRate));
     const scenarioDelta = options.scenario === 'opt' ? .02 : options.scenario === 'pes' ? -.02 : 0;
+    const allocationRules = m.allocations.filter(x => !NWFinanceState.allocationIssues(s, x).length);
+    const newCash = new Map(allocationRules.map(x => [x.id, 0]));
     const random = options.random || null;
     const cash = {};
     for (const c of ['USD', 'KRW']) {
@@ -99,7 +101,18 @@
     let monthlyFraction = 0, monthlyYearFraction = 0;
     let monthlyIncome = 0, monthlyGrossSalary = 0;
     let monthlyExpense = 0, monthlyDebtDue = 0, monthlyShortfall = 0, monthlyWithdrawals = 0;
+    let monthlySelf = 0, monthlyEspp = 0;
     let activeDate = start, activeAge = m.startAge, row;
+    function allocationActive(rule, date) {
+      const scenario = rule.scenarioId ? m.scenarios.get(rule.scenarioId) : null;
+      return date >= (rule.start || start) && date < (rule.end || m.end) &&
+        (!scenario?.start || date >= scenario.start) && (!scenario?.end || date < scenario.end);
+    }
+    function trackNewCash(currency, amount) {
+      for (const rule of allocationRules) if (rule.currency === currency && allocationActive(rule, activeDate)) {
+        newCash.set(rule.id, newCash.get(rule.id) + amount);
+      }
+    }
     const journalEnabled = options.recordJournal !== false;
     function log(kind, label, amount, extra = {}) {
       if (!journalEnabled || journal.length >= 15000) return;
@@ -123,8 +136,20 @@
       const clearing = [...plans.values()].reduce((sum, x) => sum + x.clearing, 0);
       const property = homes.reduce((sum, x) => sum + x.value, 0);
       const debt = otherDebt + loans.reduce((sum, x) => sum + x.balance, 0);
+      let protectedCash = 0, reserveTarget = 0, reserveShortfall = 0, reservesKnown = true;
+      for (const c of ['USD', 'KRW']) {
+        const reserve = f.cashReserves[c];
+        if (reserve.emergencyAmount == null || reserve.earmarkAmount == null) { reservesKnown = false; continue; }
+        const target = usd(reserve.emergencyAmount + reserve.earmarkAmount, c);
+        reserveTarget += target;
+        protectedCash += Math.min(cash[c].balance, target);
+        reserveShortfall += Math.max(0, target - cash[c].balance);
+      }
       return {
         cash: cashTotal, accountTotal, accountAfterTax, available, locked, deposit, clearing,
+        protectedCash, reservesKnown, reserveTarget: reservesKnown ? reserveTarget : null,
+        reserveShortfall: reservesKnown ? reserveShortfall : null,
+        freeAvailable: reservesKnown ? Math.max(0, available - reserveTarget) : null,
         realAssets: staticReal + property, debt,
         netWorth: cashTotal + accountTotal + deposit + clearing + staticReal + property - debt,
         totalFinancial: cashTotal + accountTotal,
@@ -136,6 +161,7 @@
       for (const c of [currency, currency === 'USD' ? 'KRW' : 'USD']) {
         const take = Math.min(cash[c].balance, left);
         cash[c].balance = Math.max(0, cash[c].balance - take);
+        trackNewCash(c, -take);
         left -= take;
       }
       if (allowAccounts && left > EPS) {
@@ -221,6 +247,7 @@
         } else {
           paid = fund(desired, plan.currency, `ESPP ${plan.name}`, false, false);
           row.esppDeductions += paid;
+          monthlyEspp += paid;
         }
         plan.clearing += paid;
         plan.contributedByYear[y] = (plan.contributedByYear[y] || 0) + paid;
@@ -250,7 +277,7 @@
         if (flow.kind === 'salary' || flow.kind === 'gross_tc') row.grossSalary += cashGross;
       } else row.netInputIncome += net;
       row.businessCosts += cost; row.taxes += tax; row.income += net;
-      if (net >= 0) cash[flow.currency].balance += net;
+      if (net >= 0) { cash[flow.currency].balance += net; trackNewCash(flow.currency, net); }
       else fund(-net, flow.currency, `Business loss: ${flow.name}`);
       monthlyIncome += net;
       if (flow.taxTreatment === 'gross' && (flow.kind === 'salary' || flow.kind === 'gross_tc')) monthlyGrossSalary += cashGross;
@@ -338,6 +365,7 @@
         row.nonCashCompensation += net; row.dbBenefitTransfers += net;
       } else {
         cash[benefit.currency].balance += net;
+        trackNewCash(benefit.currency, net);
         row.income += net; monthlyIncome += net; row.dbBenefitCash += net;
       }
       log('db-new-benefit', benefit.name, net, { knownGross: benefit.amountBasis === 'gross' ? value : null,
@@ -389,7 +417,10 @@
         if (a) {
           a.balance += result.stock; a.costBasis += result.costBasis;
           row.nonCashCompensation += result.stock;
-        } else { cash[grant.currency].balance += result.cash; row.income += result.cash; monthlyIncome += result.cash; }
+        } else {
+          cash[grant.currency].balance += result.cash; row.income += result.cash; monthlyIncome += result.cash;
+          trackNewCash(grant.currency, result.cash);
+        }
         row.events.push({ type: 'rsu', label: grant.name, date: activeDate });
         log('rsu-vesting', grant.name, result.grossIncome, { tax: result.tax, cash: result.cash, stock: result.stock });
         return;
@@ -488,6 +519,7 @@
           } else { warn(`Account transfer unavailable / 계좌 인출 불가: ${e.name}`); row.shortfall += value; monthlyShortfall += value; }
         } else {
           cash[e.currency].balance += value; row.income += value; row.grossIncome += value; monthlyIncome += value;
+          trackNewCash(e.currency, value);
           log('lump-income', e.name, value);
         }
       } else if (e.type === 'lumpsum-out') expense(value, e.currency, e.name);
@@ -528,6 +560,29 @@
         addPending(flow.id, amount);
       }
     }
+    function allocateSurplus() {
+      // Never sell assets to auto-invest, or buy back assets withdrawn this month.
+      if (monthlyShortfall > EPS || monthlyWithdrawals > EPS) return;
+      let economicSurplus = Math.max(0, monthlyIncome - monthlyExpense - monthlyDebtDue - monthlySelf - monthlyEspp);
+      for (const rule of allocationRules) {
+        if (!allocationActive(rule, activeDate)) continue;
+        const a = accounts.find(x => x.id === rule.accountId);
+        if (!a || a.model !== 'brokerage') continue;
+        const reserve = f.cashReserves[rule.currency];
+        const floor = usd(reserve.emergencyAmount + reserve.earmarkAmount, rule.currency);
+        const eligible = Math.max(0, Math.min(newCash.get(rule.id), economicSurplus,
+          cash[rule.currency].balance - floor));
+        const amount = eligible * pct(rule.percentPct);
+        if (amount <= EPS) continue;
+        cash[rule.currency].balance -= amount;
+        newCash.set(rule.id, newCash.get(rule.id) - amount);
+        economicSurplus -= amount;
+        a.balance += amount; a.costBasis += amount;
+        row.autoInvested += amount; row.transfers += amount;
+        log('automatic-investment', rule.name, amount, { accountId: a.id, currency: rule.currency,
+          eligibleSurplus: eligible, protectedFloor: floor, transfer: true, newIncome: false });
+      }
+    }
     function closeMonth(segment) {
       activeDate = segment.lastDate;
       const receipts = flows.filter(flow => pending.has(flow.id) && flow.kind !== 'expense');
@@ -564,10 +619,12 @@
         const desired = Number(a.contribSelfRate) > 0 ? base * pct(Number(a.contribSelfRate)) : a.annualSelf * monthlyYearFraction;
         const paid = fund(desired, a.currency, `Savings ${a.name}`, false, false);
         a.balance += paid; a.costBasis += paid; row.employeeContributions += paid;
+        monthlySelf += paid;
         a.yearSelfPaid += paid; a.yearIncomeBase += base;
         log('employee-contribution', a.name, paid, { transfer: true });
         if (cfg.employerPayMonth == null) employerDeposit(a, monthlyYearFraction, paid, base);
       }
+      allocateSurplus();
       if (activeDate >= bridge.start && activeDate < bridge.end) {
         bridge.requiredNet += Math.max(0, monthlyExpense + monthlyDebtDue - monthlyIncome);
         bridge.shortfall += monthlyShortfall;
@@ -576,10 +633,13 @@
       if (options.recordMonthly !== false) {
         const snap = snapshot(activeDate);
         months.push({ date: activeDate, cash: snap.cash, available: snap.available, netWorth: snap.netWorth,
+          protectedCash: snap.protectedCash, freeAvailable: snap.freeAvailable, reserveShortfall: snap.reserveShortfall,
           cumulativeShortfall: row.shortfall });
       }
       monthlyFraction = 0; monthlyYearFraction = 0; monthlyIncome = 0; monthlyGrossSalary = 0;
       monthlyExpense = 0; monthlyDebtDue = 0; monthlyShortfall = 0; monthlyWithdrawals = 0;
+      monthlySelf = 0; monthlyEspp = 0;
+      for (const rule of allocationRules) newCash.set(rule.id, 0);
     }
     for (const segment of m.segments) {
       activeDate = segment.from; activeAge = segment.age; row = getRow(segment);
@@ -595,6 +655,7 @@
         row.taxes += result.tax; row.investmentIncome += result.grossIncome;
         row.income += result.netIncome; row.grossIncome += result.grossIncome;
         monthlyIncome += result.netIncome;
+        trackNewCash(c, result.netIncome);
       }
       for (const a of accounts) {
         if (a.balance > EPS && (!a.cfg.taxConfirmed || (a.model === 'brokerage' &&
@@ -628,7 +689,9 @@
         netWorth: snap.netWorth, totalFinancial: snap.totalFinancial, rentalDepositAsset: snap.deposit,
         esppClearing: snap.clearing, lockedRetirement: snap.locked, realAssets: snap.realAssets,
         totalAccAfterTax: snap.accountAfterTax, totalAccBalancePre: snap.accountTotal, debtRemain: snap.debt,
-        savings: row.income - row.expense - row.debtPayments - row.employeeContributions - row.esppDeductions,
+        protectedCash: snap.protectedCash, freeAvailable: snap.freeAvailable, reservesKnown: snap.reservesKnown,
+        reserveTarget: snap.reserveTarget, reserveShortfall: snap.reserveShortfall,
+        savings: row.income - row.expense - row.debtPayments - row.employeeContributions - row.esppDeductions - row.autoInvested,
         accSnapshot: accounts.map(a => ({ id: a.id, balance: a.balance, costBasis: a.costBasis,
           accessible: accessible(a, segment.lastDate), withdrawals: a.periodWithdrawals, taxes: a.periodTaxes,
           afterTax: afterTax(a), deferredCompensation: a.deferredCompensation })),
@@ -652,14 +715,16 @@
           : modelDate < retireDate ? 1 / NWCore.growthFactor(inf, T().yearFraction(modelDate, retireDate))
           : NWCore.growthFactor(inf, T().yearFraction(retireDate, modelDate));
         const annualNeed = annualTarget > 0 ? annualTarget * targetFactor : r.expense / r.yearFraction;
-        const supported = r.totalLiquid * Number(s.inputs.withdrawRate) / 100;
+        const supported = r.freeAvailable == null ? null : r.freeAvailable * Number(s.inputs.withdrawRate) / 100;
         return { year: r.year, age: r.age, annualNeed, portfolioSupport: supported,
+          available: r.totalLiquid, freeAvailable: r.freeAvailable, shortfall: r.shortfall,
           maintainedWorkIncome: f.retirement.maintainedIncomeUSD,
-          coveragePct: annualNeed > 0 ? (supported + (f.retirement.maintainedIncomeUSD ?? 0)) / annualNeed * 100 : 0,
-          workIncomeNeeded: Math.max(0, annualNeed - supported - (f.retirement.maintainedIncomeUSD ?? 0)), goalPct: f.retirement.coveragePct };
+          coveragePct: supported == null ? null : annualNeed > 0 ? (supported + (f.retirement.maintainedIncomeUSD ?? 0)) / annualNeed * 100 : 0,
+          workIncomeNeeded: supported == null ? null : Math.max(0, annualNeed - supported - (f.retirement.maintainedIncomeUSD ?? 0)), goalPct: f.retirement.coveragePct };
       }),
     };
     const meta = { initial, bridge, fi, warnings: [...warnings], provisional: warnings.size > 0,
+      planning: f.planningItems.filter(x => x.enabled).map(x => NWFinanceState.planningStatus(s, x, m)),
       success: rows.every(r => r.shortfall < EPS), journal, months,
       assumptions: { timing: 'dated/month-end accrual', fx: 'fixed reference rate', marketCorrelation: 'shared shock within each group',
         taxes: 'user effective rates; no treaty/legal determination', recordLimit: 15000 } };
@@ -691,5 +756,22 @@
       metric: 'net worth; success requires every dated cash need funded',
     };
   }
-  window.NWFinanceEngine = { simulate, monteCarlo, rng };
+  function compareFlow(input, id, options = {}) {
+    const state = NWCore.validate(input);
+    const comparison = state.finance.comparisons.find(x => x.id === id);
+    if (!comparison) throw new Error('comparison-reference');
+    const missing = NWFinanceState.comparisonIssues(state, comparison);
+    if (!comparison.enabled || comparison.status === 'unknown') missing.push('enabled/status');
+    if (missing.length) return { ready: false, missing };
+    const source = state.finance.flows.find(x => x.id === comparison.sourceFlowId);
+    const replacement = { ...source, id: crypto.randomUUID(), name: comparison.name, start: comparison.start,
+      amount: comparison.amount, businessCost: comparison.businessCost, taxTreatment: 'gross', taxPct: comparison.taxPct };
+    // A replacement is not an extra income stream, and the base input is immutable.
+    if (source.start === comparison.start) source.enabled = false;
+    else source.end = comparison.start;
+    state.finance.flows.push(replacement);
+    const result = simulate(state, options);
+    return { ready: true, result };
+  }
+  window.NWFinanceEngine = { simulate, monteCarlo, rng, compareFlow };
 })();
