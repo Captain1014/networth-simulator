@@ -1,11 +1,11 @@
 /* Pure data and persistence helpers. Amounts remain in their original currencies. */
 (() => {
   'use strict';
-  const VERSION = 2;
+  const VERSION = 3;
   const KEY = 'networth-simulator-state';
   const MONEY_IDS = [
     'investAsset', 'realEstate', 'vehicle', 'otherAsset', 'mortgage', 'studentLoan',
-    'carLoan', 'otherDebt', 'annualIncome', 'annualExpense', 'targetMonthly', 'externalPension',
+    'carLoan', 'otherDebt', 'annualIncome', 'annualExpense', 'targetMonthly', 'externalPension', 'rentalDepositAsset',
   ];
   const DEFAULT_INPUTS = {
     currentAge: '30', retireAge: '55', returnRate: '7', returnVolatility: '15',
@@ -73,6 +73,43 @@
   function eventSortKey(event, state) {
     return event.date || `${yearAtAge(event.age, state)}-01-01`;
   }
+  function calendarPeriod(startDate, index = 0) {
+    date(startDate);
+    const year = Number(startDate.slice(0, 4)) + index;
+    const yearStart = Date.UTC(year, 0, 1);
+    const end = Date.UTC(year + 1, 0, 1);
+    const start = index === 0 ? Date.parse(startDate + 'T00:00:00Z') : yearStart;
+    const yearDays = (end - yearStart) / 86400000;
+    const days = (end - start) / 86400000;
+    return {
+      year, startDate: new Date(start).toISOString().slice(0, 10),
+      endDate: new Date(end).toISOString().slice(0, 10),
+      lastDate: new Date(end - 86400000).toISOString().slice(0, 10),
+      days, yearDays, fraction: days / yearDays,
+    };
+  }
+  function overlapFraction(period, startDate = null, endDate = null) {
+    const start = Math.max(Date.parse(period.startDate + 'T00:00:00Z'),
+      startDate ? Date.parse(date(startDate) + 'T00:00:00Z') : -Infinity);
+    const end = Math.min(Date.parse(period.endDate + 'T00:00:00Z'),
+      endDate ? Date.parse(date(endDate) + 'T00:00:00Z') : Infinity);
+    return Math.max(0, (end - start) / 86400000) / period.yearDays;
+  }
+  function growthFactor(rate, years = 1) {
+    if (!Number.isFinite(rate) || !Number.isFinite(years) || years < 0) throw new Error('growth');
+    return years === 0 ? 1 : Math.pow(Math.max(0, 1 + rate), years);
+  }
+  function loanPeriod(balance, rate, remainingYears, fraction, fixedAnnualPayment = null) {
+    if (balance <= 0) return { payment: 0, interest: 0, balance: 0 };
+    const term = Math.max(0, remainingYears);
+    const time = Math.min(fraction, term);
+    if (!time) return { payment: balance, interest: 0, balance: 0 };
+    const annual = fixedAnnualPayment ?? (rate === 0 ? balance / term
+      : balance * rate / -Math.expm1(-term * Math.log1p(rate)));
+    const interest = balance * (growthFactor(rate, time) - 1);
+    const payment = Math.min(balance + interest, annual * time);
+    return { payment, interest, balance: Math.max(0, balance + interest - payment) };
+  }
   function text(v) {
     if (typeof v !== 'string' || v.length > 500) throw new Error('text');
     return v;
@@ -123,6 +160,7 @@
     return {
       schemaVersion: VERSION, profileId: crypto.randomUUID(), updatedAt: '',
       projectionStartDate: today(),
+      finance: window.NWFinanceState?.defaults(),
       inputs: { ...DEFAULT_INPUTS },
       money: Object.fromEntries(MONEY_IDS.map(k => [k, { USD: '', KRW: '' }])),
       accounts: [], events: [], housingScenarios: [], currentSc: 'base',
@@ -130,12 +168,13 @@
     };
   }
   function validate(raw) {
-    if (!object(raw) || raw.schemaVersion !== VERSION || !object(raw.inputs) || !object(raw.money)) throw new Error('schema');
+    if (!object(raw) || ![2, VERSION].includes(raw.schemaVersion) || !object(raw.inputs) || !object(raw.money)) throw new Error('schema');
     const s = emptyState();
     s.profileId = text(raw.profileId);
     if (!s.profileId) throw new Error('profile');
     s.updatedAt = text(raw.updatedAt ?? '');
     s.projectionStartDate = date(raw.projectionStartDate ?? today());
+    if (Number(s.projectionStartDate.slice(0, 4)) > 9900) throw new Error('projection-year');
     for (const [k, fallback] of Object.entries(DEFAULT_INPUTS)) {
       const v = own(raw.inputs, k) ? raw.inputs[k] : fallback;
       if (k.endsWith('Age')) age(v);
@@ -146,16 +185,17 @@
     }
     if (Number(s.inputs.retireAge) < Number(s.inputs.currentAge)) throw new Error('retirement-age');
     for (const k of MONEY_IDS) {
-      if (!object(raw.money[k])) throw new Error('money');
+      const value = k === 'rentalDepositAsset' && raw.money[k] === undefined ? { USD: '', KRW: '' } : raw.money[k];
+      if (!object(value)) throw new Error('money');
       for (const c of ['USD', 'KRW']) {
-        number(raw.money[k][c]);
-        s.money[k][c] = String(raw.money[k][c] ?? '');
+        number(value[c]);
+        s.money[k][c] = String(value[c] ?? '');
       }
     }
     s.accounts = list(raw.accounts, 100, a => {
       if (!object(a)) throw new Error('account');
       const x = { ...ACCOUNT_DEFAULTS, ...a, employerMatchMode: a.employerMatchMode || (a.contribEmployerRate ? 'percent' : 'fixed') };
-      const out = { id: id(x.id), currency: currency(x.currency), type: choice(x.type, ['roth', 'traditional', 'pension_kr', 'taxable']), name: text(x.name) };
+      const out = { id: id(x.id), currency: currency(x.currency), type: choice(x.type, ['roth', 'traditional', 'pension_kr', 'taxable', 'dc_kr', 'irp_kr', 'cash']), name: text(x.name) };
       for (const k of ['balance', 'contribSelf', 'contribEmployer']) { number(x[k]); out[k] = String(x[k]); }
       for (const k of ['contribSelfRate', 'contribEmployerRate', 'matchCapPercent']) out[k] = rate(x[k]);
       out.matchRate = rate(x.matchRate, 0, 1000);
@@ -163,7 +203,7 @@
       out.withdrawTaxRate = rate(x.withdrawTaxRate, 0, 99.99);
       out.employerMatchMode = choice(x.employerMatchMode, ['fixed', 'percent', 'match']);
       for (const k of ['contribStartAge', 'contribEndAge']) out[k] = String(age(x[k], true));
-      out.retireDrawAge = String(age(x.retireDrawAge, x.type === 'taxable'));
+      out.retireDrawAge = String(age(x.retireDrawAge, ['taxable', 'cash'].includes(x.type)));
       if (x.contribStartAge !== '' && x.contribEndAge !== '' && Number(x.contribEndAge) < Number(x.contribStartAge)) throw new Error('contribution-age');
       return out;
     });
@@ -171,7 +211,7 @@
       if (!object(e)) throw new Error('event');
       const x = {
         id: id(e.id), currency: currency(e.currency), name: text(e.name ?? ''),
-        type: choice(e.type, ['income', 'income-add', 'expense', 'expense-add', 'lumpsum-out', 'lumpsum-in']),
+        type: choice(e.type, ['income', 'income-add', 'expense', 'expense-add', 'lumpsum-out', 'lumpsum-in', 'deposit-pay', 'deposit-return']),
         value: String(e.value ?? ''),
       };
       if (e.date != null && e.date !== '') x.date = date(e.date);
@@ -191,6 +231,8 @@
         x.drainAccountId = id(Number(e.drainAccountId));
         if (!s.accounts.some(a => a.id === x.drainAccountId)) throw new Error('account-reference');
       }
+      if (e.depositId != null) x.depositId = text(e.depositId);
+      if (e.scenarioId != null) x.scenarioId = text(e.scenarioId);
       return x;
     });
     s.housingScenarios = list(raw.housingScenarios ?? [], 3, h => {
@@ -215,11 +257,15 @@
     s.showRetireOnly = raw.showRetireOnly;
     s.displayCurrency = currency(raw.displayCurrency);
     s.fx = raw.fx == null ? null : cleanFx(raw.fx);
+    s.finance = NWFinanceState.normalize(raw.finance, s);
+    for (const e of s.events) {
+      if (e.scenarioId && !s.finance.scenarios.some(x => x.id === e.scenarioId)) throw new Error('scenario-reference');
+    }
     return s;
   }
   function migrate(raw, legacyCurrency) {
     if (!object(raw)) throw new Error('schema');
-    if (raw.schemaVersion === VERSION) return validate(raw);
+    if ([2, VERSION].includes(raw.schemaVersion)) return validate(raw);
     if (raw.schemaVersion != null || !object(raw.inputs)) throw new Error('schema');
     currency(legacyCurrency);
     const s = emptyState();
@@ -294,5 +340,5 @@
       return cleanFx({ ...await response.json(), source: 'Frankfurter', fetchedAt: new Date().toISOString() });
     } finally { clearTimeout(timeout); }
   }
-  window.NWCore = { VERSION, KEY, MONEY_IDS, DEFAULT_INPUTS, HOUSING_MONEY, emptyState, validate, migrate, number, validFx, cleanFx, toUSD, fromUSD, Store, fetchRate, today, date, shiftYears, yearAtAge, eventAge, eventEndAge, eventSortKey };
+  window.NWCore = { VERSION, KEY, MONEY_IDS, DEFAULT_INPUTS, HOUSING_MONEY, emptyState, validate, migrate, number, validFx, cleanFx, toUSD, fromUSD, Store, fetchRate, today, date, shiftYears, yearAtAge, eventAge, eventEndAge, eventSortKey, calendarPeriod, overlapFraction, growthFactor, loanPeriod };
 })();

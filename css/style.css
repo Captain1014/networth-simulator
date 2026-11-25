@@ -24,6 +24,42 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
+.import-modal.finance-modal { width: min(1040px, 96vw); max-height: 90dvh; }
+.finance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 12px 0; }
+.finance-field { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.finance-field label { font-size: 12px; color: var(--text2); }
+.finance-field input, .finance-field select {
+  width: 100%; min-height: 36px; padding: 7px 9px; border: 1px solid var(--border2);
+  color: var(--text); background: var(--bg); border-radius: 6px; font: inherit; color-scheme: dark;
+}
+.finance-field input[type="checkbox"] { width: 22px; min-height: 22px; }
+.finance-section { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-top: 8px; }
+.finance-section > summary { cursor: pointer; color: var(--teal); }
+.finance-records { grid-template-columns: 1fr; }
+.finance-reference { grid-column: 1 / -1; color: var(--text2); overflow-wrap: anywhere; }
+.finance-schedule { grid-column: 1 / -1; }
+.finance-schedule-entry { border-top: 1px solid var(--border); margin-top: 8px; }
+.finance-modal button, .finance-account-button {
+  color: var(--text); background: var(--card2); border: 1px solid var(--border2);
+  padding: 8px 12px; border-radius: 6px; cursor: pointer; font: inherit;
+}
+.finance-mode { display: flex; gap: 10px; align-items: flex-start; font-size: 12px; color: var(--gold); }
+.finance-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.finance-model-description { flex-basis: 100%; }
+.finance-legacy-inactive { opacity: .5; }
+.finance-legacy-inactive input { pointer-events: none; }
+.finance-archived-event { opacity: .6; }
+.finance-account-button { margin-bottom: 12px; color: var(--teal); }
+.finance-report { padding: 16px 20px; font-size: 12px; border-block: 1px solid var(--border); }
+.finance-report p { color: var(--text2); margin: 8px 0; }
+.finance-report ul, .finance-report ol { padding-left: 20px; }
+.finance-warnings { color: var(--gold); margin: 10px 0; }
+#financeFormError { color: var(--red); font-size: 12px; }
+.tbl-section { overflow-x: auto; max-width: 100%; }
+@media (max-width: 768px) {
+  .finance-grid { grid-template-columns: 1fr; }
+  .finance-field input, .finance-field select { min-height: 44px; font-size: 16px; }
+}
 html { scroll-behavior: smooth; }
 body {
   background: var(--bg);

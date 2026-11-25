@@ -19,6 +19,9 @@ const ACC_TYPES = {
   roth:        { label: 'Roth IRA',                   badge: 'badge-roth',        color: '#6abf7b', taxOnContrib: true,  taxOnWithdraw: false, desc: '세후 납입 → 인출 비과세' },
   traditional: { label: 'Traditional IRA / 401k',      badge: 'badge-traditional', color: '#9b7fe8', taxOnContrib: false, taxOnWithdraw: true,  desc: '세전 납입 → 인출 시 과세' },
   pension_kr:  { label: '한국 연금저축펀드',          badge: 'badge-pension',     color: '#5b9bd5', taxOnContrib: false, taxOnWithdraw: true,  desc: '세전 납입 → 연금소득세 과세' },
+  cash: { label: 'Cash / bank deposit', badge: 'badge-taxable', color: '#5bbfb5', desc: 'Interest with an effective interest-tax assumption' },
+  irp_kr: { label: 'Korea IRP retirement', badge: 'badge-pension', color: '#5b9bd5', desc: 'Retirement settlement account; effective-tax and access assumptions require review' },
+  dc_kr: { label: 'Korea DC retirement', badge: 'badge-pension', color: '#5b9bd5', desc: 'Employer-funded retirement asset; access and taxes are explicit assumptions' },
   taxable:     { label: '일반 과세 계좌',              badge: 'badge-taxable',     color: '#d4a853', taxOnContrib: false, taxOnWithdraw: false, desc: '수익에 대해 매년 과세' },
 };
 
@@ -194,39 +197,7 @@ function saveState() { queueStateSave(); }
 
 function getStateForExport() { return captureState(); }
 
-function buildYearlyTableText(rows, showRetireOnly) {
-  const list = showRetireOnly ? rows.filter(r => r.isRetired) : rows;
-  if (list.length === 0) return '';
-  const retAge = pN('retireAge');
-  const ageSfx = t('summary.ageSuffix');
-  const accCols = accounts.map(a => a.name || getAccTypeLabel(a.type));
-  const headers = [L('Year / age', '연도 / 나이'), t('table.event'), t('table.income'), t('table.expense'), t('table.savings'), t('table.investCol')]
-    .concat(accCols)
-    .concat([t('table.total')]);
-  const line = (cells) => cells.join(' | ');
-  const sep = line(headers.map(() => '---'));
-  const scenarioLabel = t('chart.' + currentSc) || currentSc;
-  const lines = ['## ' + t('table.title') + ' - ' + scenarioLabel + '\n', '| ' + line(headers) + ' |', '| ' + sep + ' |'];
-  for (const r of list) {
-    const evStr = r.events.length ? r.events.map(e => (e.date ? e.date + ' · ' : '') + e.label).join(', ') : '—';
-    const inc = r.income != null ? fmt(r.income) : '—';
-    const exp = fmt(r.expense);
-    const sav = fmt(r.savings);
-    const inv = r.invest < 0 ? t('table.depleted') : fmt(r.invest);
-    const accCells = accounts.map(a => {
-      const snap = r.accSnapshot.find(s => s.id === a.id);
-      if (!snap) return '—';
-      const accType = ACC_TYPES[a.type] || ACC_TYPES.roth;
-      const txRate = (parseFloat(a.withdrawTaxRate) || 0) / 100;
-      const afterTax = accType.taxOnWithdraw ? snap.balance * (1 - txRate) : snap.balance;
-      return fmt(afterTax);
-    });
-    const ageCell = yearAgeLabel(r) + (r.age === retAge ? ' (' + t('table.retireTag') + ')' : '');
-    const rowCells = [ageCell, evStr, inc, exp, sav, inv].concat(accCells).concat([fmt(r.totalLiquid)]);
-    lines.push('| ' + line(rowCells) + ' |');
-  }
-  return lines.join('\n');
-}
+function buildYearlyTableText(rows, showRetireOnly) { return financeExportTable(rows, showRetireOnly); }
 
 function buildHousingTableText() {
   if (!housingScenarios.length) return '';
@@ -761,357 +732,12 @@ function fmt(n) {
   return Number.isFinite(n) ? fmtDisplayed(displayAmount(n)) : '—';
 }
 
-function simulate(sk = 'base', returnSequence = null) {
-  const mod = SC[sk];
-  const startAge = pN('currentAge');
-  const retireAge = pN('retireAge');
-  const schedule = eventScheduleState();
-  const scheduledEvents = [...events]
-    .sort((a, b) => NWCore.eventSortKey(a, schedule).localeCompare(NWCore.eventSortKey(b, schedule)) || a.id - b.id)
-    .map(ev => ({ ...ev, age: NWCore.eventAge(ev, schedule), endAge: NWCore.eventEndAge(ev, schedule) }));
-  let invest = pN('investAsset');
-  const income = {
-    USD: NWCore.toUSD(document.getElementById('annualIncome').value, 'USD', W.state.fx),
-    KRW: NWCore.toUSD(document.getElementById('annualIncome_KRW').value, 'KRW', W.state.fx),
-  };
-  const expense = {
-    USD: NWCore.toUSD(document.getElementById('annualExpense').value, 'USD', W.state.fx),
-    KRW: NWCore.toUSD(document.getElementById('annualExpense_KRW').value, 'KRW', W.state.fx),
-  };
-  const rrBase = pR('returnRate') + mod.r / 100;
-  const inf = pR('inflation');
-  const wageGrowth = pR('wageGrowthRate');
+function simulate(sk = 'base') { return financeCalculate(sk); }
 
-  let mortgage = pN('mortgage');
-  let studentLoan = pN('studentLoan');
-  let carLoan = pN('carLoan');
-  const mRate = pR('mortgageRate');
-  const slRate = pR('studentLoanRate');
+function runMonteCarlo() { mcResult = financeMonteCarlo(); return mcResult; }
 
-  const accState = accounts.map(a => ({
-    id: a.id,
-    balance: objectMoney(a, 'balance'),
-    type: a.type,
-    rate: (parseFloat(a.rate) || 0) / 100 + mod.p / 100,
-    contribSelf: objectMoney(a, 'contribSelf'),
-    contribSelfRate: (parseFloat(a.contribSelfRate) || 0) / 100,
-    contribEmployer: objectMoney(a, 'contribEmployer'),
-    contribEmployerRate: (parseFloat(a.contribEmployerRate) || 0) / 100,
-    employerMatchMode: a.employerMatchMode || (a.contribEmployerRate ? 'percent' : 'fixed'),
-    matchRate: NWCore.number(a.matchRate ?? '50') / 100,
-    matchCapPercent: NWCore.number(a.matchCapPercent ?? '8') / 100,
-    contribStartAge: parseInt(a.contribStartAge) || startAge,
-    contribEndAge: parseInt(a.contribEndAge) || retireAge,
-    withdrawTaxRate: (parseFloat(a.withdrawTaxRate) || 0) / 100,
-    retireDrawAge: parseInt(a.retireDrawAge) || 60,
-  }));
+function renderSummary(rows) { renderFinanceSummary(rows); }
 
-  // expense-add / income-add: each entry tracks its own current value
-  const extraExpenses = []; // { id, current, endAge }
-  const extraIncomes = []; // { id, current, endAge }
-
-  const rows = [];
-  for (let age = startAge; age <= 100; age++) {
-    const isRetired = age >= retireAge;
-
-    // Remove expired extra expenses / incomes
-    for (let i = extraExpenses.length - 1; i >= 0; i--) {
-      if (extraExpenses[i].endAge && age >= extraExpenses[i].endAge) {
-        extraExpenses.splice(i, 1);
-      }
-    }
-    for (let i = extraIncomes.length - 1; i >= 0; i--) {
-      if (extraIncomes[i].endAge && age >= extraIncomes[i].endAge) {
-        extraIncomes.splice(i, 1);
-      }
-    }
-
-    let lumpIn = 0, lumpOut = 0;
-    const evDescs = [];
-    for (const ev of scheduledEvents) {
-      if (parseInt(ev.age, 10) !== age) continue;
-      const val = objectMoney(ev, 'value');
-      if (ev.type === 'income') { income[ev.currency] = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.income') }); }
-      else if (ev.type === 'income-add') {
-        extraIncomes.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
-        evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.incomeAdd') });
-      }
-      else if (ev.type === 'expense') { expense[ev.currency] = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.expense') }); }
-      else if (ev.type === 'expense-add') {
-        extraExpenses.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
-        evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.expenseAdd') });
-      }
-      else if (ev.type === 'lumpsum-out') { lumpOut += val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.lumpOut') }); }
-      else if (ev.type === 'lumpsum-in') { lumpIn += val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.lumpIn') }); }
-    }
-
-    // Total expense = base expense + all active extra expenses
-    const totalExpense = expense.USD + expense.KRW + extraExpenses.reduce((s, x) => s + x.current, 0);
-    const totalIncome = income.USD + income.KRW + extraIncomes.reduce((s, x) => s + x.current, 0);
-
-    const mPayment = mortgage > 0 ? (mRate === 0 ? mortgage / Math.max(1, 30 - (age - startAge)) : mortgage * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30 - (age - startAge))))) : 0;
-    const slPayment = studentLoan > 0 ? (slRate === 0 ? studentLoan / Math.max(1, 10 - (age - startAge)) : studentLoan * slRate / (1 - Math.pow(1 + slRate, -Math.max(1, 10 - (age - startAge))))) : 0;
-    const carPayment = carLoan > 0 ? carLoan / Math.max(1, 5 - (age - startAge)) : 0;
-    const totalDebt = Math.min(mPayment + slPayment + carPayment, mortgage + studentLoan + carLoan);
-    mortgage = Math.max(0, mortgage - (mPayment - mortgage * mRate));
-    studentLoan = Math.max(0, studentLoan - (slPayment - studentLoan * slRate));
-    carLoan = Math.max(0, carLoan - carPayment);
-
-    let totalAccContrib = 0;
-    let totalAccBalancePre = 0;
-    for (const ac of accState) {
-      const stillContrib = age >= ac.contribStartAge && age < ac.contribEndAge;
-      const selfAmt = stillContrib ? (ac.contribSelfRate > 0 ? totalIncome * ac.contribSelfRate : ac.contribSelf) : 0;
-      let employerAmt = 0;
-      if (stillContrib) {
-        if (ac.employerMatchMode === 'match') {
-          const matchable = Math.min(selfAmt, ac.matchCapPercent * totalIncome);
-          employerAmt = ac.matchRate * matchable;
-        } else if (ac.employerMatchMode === 'percent') {
-          employerAmt = totalIncome * ac.contribEmployerRate;
-        } else {
-          employerAmt = ac.contribEmployer;
-        }
-      }
-      ac.balance = ac.balance * (1 + ac.rate) + selfAmt + employerAmt;
-      totalAccContrib += selfAmt;
-      totalAccBalancePre += ac.balance;
-    }
-
-    // 목돈 유입이 특정 계좌 해지·이전을 의미할 때: 해당 계좌 잔액을 0으로 (예: ISA 전액 해지 후 invest로 편입)
-    for (const ev of scheduledEvents) {
-      if (parseInt(ev.age, 10) !== age) continue;
-      if (ev.type !== 'lumpsum-in' || ev.drainAccountId == null || String(ev.drainAccountId).trim() === '') continue;
-      const did = parseInt(ev.drainAccountId, 10);
-      if (isNaN(did)) continue;
-      const tac = accState.find(a => a.id === did);
-      if (tac) tac.balance = 0;
-    }
-
-    const savings = isRetired ? 0 : (totalIncome - totalExpense - totalDebt - totalAccContrib);
-    const rr = returnSequence ? returnSequence[age - startAge] : rrBase;
-    invest = invest * (1 + rr) + savings + lumpIn - lumpOut;
-    if (isRetired && totalExpense > 0) {
-      let totalAT = 0;
-      const drawable = accState.filter(ac => ac.type === 'taxable' || age >= (ac.retireDrawAge || 60));
-      for (const ac of drawable) {
-        const t = ACC_TYPES[ac.type] || ACC_TYPES.roth;
-        totalAT += t.taxOnWithdraw ? ac.balance * (1 - ac.withdrawTaxRate) : ac.balance;
-      }
-      const investVal = Math.max(0, invest);
-      const totalLiquidPre = investVal + totalAT;
-      if (totalLiquidPre > 0) {
-        const drawFromInvest = (investVal / totalLiquidPre) * totalExpense;
-        invest = Math.max(0, invest - drawFromInvest);
-        const remaining = totalExpense - drawFromInvest;
-        if (remaining > 0 && totalAT > 0) {
-          for (const ac of drawable) {
-            const t = ACC_TYPES[ac.type] || ACC_TYPES.roth;
-            const afterTax = t.taxOnWithdraw ? ac.balance * (1 - ac.withdrawTaxRate) : ac.balance;
-            const share = (afterTax / totalAT) * remaining;
-            if (share <= 0) continue;
-            if (t.taxOnWithdraw) {
-              const grossWithdraw = share / (1 - ac.withdrawTaxRate);
-              ac.balance = Math.max(0, ac.balance - grossWithdraw);
-            } else {
-              ac.balance = Math.max(0, ac.balance - share);
-            }
-          }
-        }
-      } else {
-        invest = Math.max(0, invest - totalExpense);
-      }
-    }
-
-    let totalAccAfterTax = 0;
-    for (const ac of accState) {
-      const t = ACC_TYPES[ac.type] || ACC_TYPES.roth;
-      totalAccAfterTax += t.taxOnWithdraw ? ac.balance * (1 - ac.withdrawTaxRate) : ac.balance;
-    }
-
-    const totalLiquid = Math.max(0, invest) + totalAccAfterTax;
-    const dispIncome = isRetired ? null : totalIncome;
-    const dispExpense = totalExpense + (isRetired ? 0 : totalDebt);
-    const dispSavings = isRetired ? -totalExpense : savings;
-
-    // Inflate base expense and each extra expense independently
-    for (const c of ['USD', 'KRW']) expense[c] *= 1 + inf;
-    for (const x of extraExpenses) x.current = x.current * (1 + inf);
-    if (!isRetired) {
-      for (const c of ['USD', 'KRW']) income[c] *= 1 + wageGrowth;
-      for (const x of extraIncomes) x.current = x.current * (1 + wageGrowth);
-    }
-
-    rows.push({
-      year: NWCore.yearAtAge(age, schedule),
-      age,
-      isRetired,
-      income: dispIncome,
-      expense: dispExpense,
-      savings: dispSavings,
-      invest,
-      totalAccAfterTax,
-      totalAccBalancePre,
-      totalLiquid,
-      investRaw: invest,
-      accSnapshot: accState.map(a => ({ id: a.id, balance: a.balance })),
-      events: evDescs,
-      debtRemain: mortgage + studentLoan + carLoan,
-    });
-  }
-  return rows;
-}
-
-// ═══════════════════════════════════════════════════
-// MONTE CARLO
-// ═══════════════════════════════════════════════════
-/** Mulberry32 PRNG: returns [0, 1). Seeded once per run so we never rely on Math.random (fixes 100% on some deploys). */
-function createMcRng() {
-  let s;
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    s = buf[0];
-  } else {
-    s = ((typeof performance !== 'undefined' && performance.now) ? (Date.now() * 1e3 + performance.now()) : Date.now()) >>> 0;
-  }
-  if (!s) s = 1;
-  return function () {
-    s = Math.imul(s ^ (s >>> 15), s | 1);
-    return (s >>> 0) / 4294967296;
-  };
-}
-
-function randomNormal(rng) {
-  var u1 = rng(), u2 = rng();
-  while (u1 <= 1e-10) u1 = rng();
-  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-}
-
-function lognormalReturn(expectedReturn, sigma, rng) {
-  var mu = Math.log(1 + expectedReturn) - (sigma * sigma) / 2;
-  var log1r = mu + sigma * randomNormal(rng);
-  return Math.exp(log1r) - 1;
-}
-
-function runMonteCarlo() {
-  var startAge = pN('currentAge');
-  var nYears = 100 - startAge + 1;
-  var expectedReturn = pR('returnRate');
-  var vol = pR('returnVolatility');
-
-  var rng = createMcRng();
-  var paths = [];
-  for (var i = 0; i < MC_RUNS; i++) {
-    var seq = [];
-    for (var y = 0; y < nYears; y++) seq.push(lognormalReturn(expectedReturn, vol, rng));
-    paths.push(simulate('base', seq));
-  }
-
-  const n = paths[0].length;
-  const p10 = [], p50 = [], p90 = [];
-  let successCount = 0;
-  for (let j = 0; j < n; j++) {
-    const vals = paths.map(rows => rows[j].totalLiquid).sort((a, b) => a - b);
-    p10.push(vals[Math.floor(MC_RUNS * 0.1)]);
-    p50.push(vals[Math.floor(MC_RUNS * 0.5)]);
-    p90.push(vals[Math.floor(MC_RUNS * 0.9)]);
-  }
-  // Use a small threshold so floating-point "dust" (e.g. 1e-10) counts as depleted
-  var depletionThreshold = 1;
-  for (var pi = 0; pi < paths.length; pi++) {
-    var pathRows = paths[pi];
-    var minLiq = pathRows[0].totalLiquid;
-    for (var ri = 1; ri < pathRows.length; ri++) {
-      var tl = pathRows[ri].totalLiquid;
-      if (tl < minLiq) minLiq = tl;
-    }
-    if (minLiq >= depletionThreshold) successCount++;
-  }
-  var depletedCount = MC_RUNS - successCount;
-  var ageSfx = t('summary.ageSuffix');
-  var mid = Math.floor(paths[0].length / 2);
-  var sampleVal = paths[0][mid].totalLiquid;
-  var pathsIdentical = true;
-  for (var qi = 1; qi < paths.length; qi++) {
-    if (paths[qi][mid].totalLiquid !== sampleVal) { pathsIdentical = false; break; }
-  }
-  mcResult = {
-    successRate: successCount / MC_RUNS,
-    successCount: successCount,
-    depletedCount: depletedCount,
-    pathsIdentical: pathsIdentical,
-    p10, p50, p90,
-    labels: paths[0].map(yearAgeLabel),
-  };
-  return mcResult;
-}
-
-// ═══════════════════════════════════════════════════
-// SUMMARY
-// ═══════════════════════════════════════════════════
-function renderSummary(rows) {
-  const iNow = pN('investAsset');
-  const real = pN('realEstate') + pN('vehicle') + pN('otherAsset');
-  const totalDebt = pN('mortgage') + pN('studentLoan') + pN('carLoan') + pN('otherDebt');
-  const accTotal = accounts.reduce((s, a) => s + objectMoney(a, 'balance'), 0);
-  const totalAssets = iNow + accTotal + real;
-  const netWorth = totalAssets - totalDebt;
-
-  document.getElementById('sumNW').textContent = fmt(netWorth);
-  document.getElementById('sumNW').className = 'val ' + (netWorth >= 0 ? 'co' : 'cr');
-  document.getElementById('subNW').textContent = t('summary.subNW').replace('{assets}', fmt(totalAssets)).replace('{debt}', fmt(totalDebt));
-
-  document.getElementById('sumDebt').textContent = fmt(totalDebt);
-  document.getElementById('sumDebt').className = 'val ' + (totalDebt > 0 ? 'cr' : 'cg');
-  const debtParts = [];
-  if (pN('mortgage') > 0) debtParts.push(t('summary.mortgage') + ' ' + fmt(pN('mortgage')));
-  if (pN('studentLoan') > 0) debtParts.push(t('summary.studentLoan') + ' ' + fmt(pN('studentLoan')));
-  if (pN('carLoan') > 0) debtParts.push(t('summary.car') + ' ' + fmt(pN('carLoan')));
-  if (pN('otherDebt') > 0) debtParts.push(t('summary.other') + ' ' + fmt(pN('otherDebt')));
-  document.getElementById('subDebt').textContent = totalDebt > 0
-    ? (debtParts.length ? debtParts.join(' · ') : t('summary.debtLabel'))
-    : t('summary.noDebt');
-
-  const retAge = pN('retireAge');
-  const rr = rows.find(r => r.age === retAge);
-  if (rr) {
-    document.getElementById('sumRetire').textContent = fmt(rr.totalLiquid);
-    document.getElementById('sumRetire').className = 'val ' + (rr.totalLiquid > 0 ? 'cg' : 'cr');
-    document.getElementById('subRetire').textContent = t('summary.subRetire').replace('{invest}', fmt(Math.max(0, rr.invest))).replace('{acc}', fmt(rr.totalAccAfterTax));
-  }
-
-  const dep = rows.find(r => r.totalLiquid <= 0);
-  if (dep) {
-    document.getElementById('sumDeplete').textContent = dep.age + t('summary.ageSuffix');
-    document.getElementById('sumDeplete').className = 'val cr';
-    document.getElementById('subDeplete').textContent = t('summary.depleteSub');
-  } else {
-    document.getElementById('sumDeplete').textContent = t('summary.noDeplete');
-    document.getElementById('sumDeplete').className = 'val cg';
-    document.getElementById('subDeplete').textContent = t('summary.noDepleteSub');
-  }
-
-  // Annual net savings = income - expense - debt repayment (matches subtitle)
-  const income = pN('annualIncome');
-  const expense = pN('annualExpense');
-  const mort = pN('mortgage');
-  const sl = pN('studentLoan');
-  const car = pN('carLoan');
-  const mRate = pR('mortgageRate');
-  const slRate = pR('studentLoanRate');
-  const mPay = mort > 0 ? (mRate === 0 ? mort / 30 : mort * mRate / (1 - Math.pow(1 + mRate, -30))) : 0;
-  const slPay = sl > 0 ? (slRate === 0 ? sl / 10 : sl * slRate / (1 - Math.pow(1 + slRate, -10))) : 0;
-  const carPay = car > 0 ? car / Math.max(1, 5) : 0;
-  const annualDebtPay = Math.min(mPay + slPay + carPay, mort + sl + car);
-  const net = income - expense - annualDebtPay;
-  document.getElementById('sumSave').textContent = fmt(net);
-  document.getElementById('sumSave').className = 'val ' + (net >= 0 ? 'cb' : 'cr');
-}
-
-// ═══════════════════════════════════════════════════
-// CHART
-// ═══════════════════════════════════════════════════
 function renderChart(rows) {
   if (chartMode === 'montecarlo' && mcResult) {
     renderChartMC(mcResult);
@@ -1123,9 +749,9 @@ function renderChart(rows) {
   }
   const ageSfx = t('summary.ageSuffix');
   const labels = rows.map(yearAgeLabel);
-  const totalD = rows.map(r => displayAmount(r.totalLiquid));
-  const investD = rows.map(r => r.invest >= 0 ? displayAmount(r.invest) : null);
-  const accD = rows.map(r => displayAmount(r.totalAccAfterTax));
+  const totalD = rows.map(r => displayAmount(r.netWorth));
+  const investD = rows.map(r => displayAmount(r.totalLiquid));
+  const accD = rows.map(r => displayAmount(r.lockedRetirement));
 
   if (chartInst) chartInst.destroy();
   const ctx = document.getElementById('mainChart').getContext('2d');
@@ -1203,150 +829,37 @@ function renderChartMC(data) {
 // ═══════════════════════════════════════════════════
 // TABLE
 // ═══════════════════════════════════════════════════
-function renderTable(rows) {
-  const retAge = pN('retireAge');
-  const showOnly = document.getElementById('showRetireOnly').checked;
-  const head = document.getElementById('tblHead');
-  const body = document.getElementById('tblBody');
+function renderTable(rows) { renderFinanceTable(rows); }
 
-  const accCols = accounts.map(a => a.name || getAccTypeLabel(a.type));
-  const ageSfx = t('summary.ageSuffix');
-  const investColTitle = t('table.investColTitle') || '';
+function render4pct(rows) { renderFinanceTarget(rows); }
 
-  // Housing scenario columns when in housing mode
-  const hsMode = chartMode === 'housing' && housingResult && housingResult.scenarios.length > 0;
-  const hsCols = hsMode ? housingResult.scenarios : [];
-
-  head.innerHTML = `<tr>
-    <th>${L('Year / age', '연도 / 나이')}</th><th>${t('table.event')}</th>
-    <th>${t('table.income')}</th><th>${t('table.expense')}</th><th>${t('table.savings')}</th>
-    <th title="${investColTitle.replace(/"/g, '&quot;')}">${t('table.investCol')}</th>
-    ${accCols.map(n => `<th>${escapeHTML(n)}</th>`).join('')}
-    <th>${t('table.total')}</th>
-    ${hsCols.map((sc, i) => `<th style="color:${HS_COLORS[i]}">${escapeHTML(sc.name)}</th>`).join('')}
-  </tr>`;
-
-  body.innerHTML = '';
-  const list = showOnly ? rows.filter(r => r.isRetired) : rows;
-  for (const r of list) {
-    const tr = document.createElement('tr');
-    if (r.age === retAge) tr.classList.add('hl');
-
-    let ageCell = yearAgeLabel(r);
-    if (r.age === retAge) ageCell += '<span class="retire-tag">' + t('table.retireTag') + '</span>';
-
-    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${escapeHTML(e.type)}">${e.date ? escapeHTML(formatEventDate(e.date)) + ' · ' : ''}${escapeHTML(e.label)}</span>`).join(' ') : '<span style="color:var(--text3)">—</span>';
-    const evCell = `<div class="ev-cell-inner">${evContent}</div>`;
-    const inc = r.income != null ? fmt(r.income) : '<span style="color:var(--text3)">—</span>';
-    const exp = fmt(r.expense);
-    const sav = fmt(r.savings);
-    const savC = r.savings >= 0 ? 'pos' : 'neg';
-    const inv = r.invest < 0 ? '<span class="neg">' + t('table.depleted') + '</span>' : fmt(r.invest);
-    const invC = r.invest < 0 ? 'neg' : 'pos';
-
-    const accCells = accounts.map(a => {
-      const snap = r.accSnapshot.find(s => s.id === a.id);
-      if (!snap) return '<td style="color:var(--text3)">—</td>';
-      const t = ACC_TYPES[a.type] || ACC_TYPES.roth;
-      const txRate = (parseFloat(a.withdrawTaxRate) || 0) / 100;
-      const afterTax = t.taxOnWithdraw ? snap.balance * (1 - txRate) : snap.balance;
-      return `<td class="pos" style="color:${ACC_TYPES[a.type]?.color || 'var(--text2)'}">${fmt(afterTax)}</td>`;
-    }).join('');
-
-    const tot = fmt(r.totalLiquid);
-    const totC = r.totalLiquid > 0 ? 'pos' : 'neg';
-
-    // Housing scenario net worth cells
-    let hsCells = '';
-    if (hsMode) {
-      hsCells = hsCols.map((sc, i) => {
-        const hsRow = sc.rows.find(hr => hr.age === r.age);
-        if (!hsRow) return `<td style="color:var(--text3)">—</td>`;
-        const nw = hsRow.netWorth;
-        return `<td style="color:${HS_COLORS[i]};font-weight:600">${fmt(nw)}</td>`;
-      }).join('');
-    }
-
-    tr.innerHTML = `
-      <td>${ageCell}</td>
-      <td>${evCell}</td>
-      <td>${inc}</td>
-      <td>${exp}</td>
-      <td class="${savC}">${sav}</td>
-      <td class="${invC}">${inv}</td>
-      ${accCells}
-      <td class="${totC}" style="font-weight:600">${tot}</td>
-      ${hsCells}
-    `;
-    body.appendChild(tr);
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// 4% FIRE
-// ═══════════════════════════════════════════════════
-function render4pct(rows) {
-  const monthly = pN('targetMonthly');
-  const wRate = (pN('withdrawRate') || 4) / 100;
-  const extPenMo = pN('externalPension');
-  const annualNeed = monthly * 12;
-  const extPenAnnual = extPenMo * 12;
-  const fireTarget = annualNeed / wRate;
-  const fireNet = Math.max(0, annualNeed - extPenAnnual) / wRate;
-
-  document.getElementById('fireTarget').textContent = fmt(fireTarget);
-  document.getElementById('fireNet').textContent = extPenMo > 0 ? fmt(fireNet) : '—';
-  const fireNeedEl = document.querySelector('#fireBox .fire-row:first-child .fire-label');
-  if (fireNeedEl) fireNeedEl.textContent = t('fire.need');
-  const fireNeedNetEl = document.querySelector('#fireBox .fire-row:nth-child(2) .fire-label');
-  if (fireNeedNetEl) fireNeedNetEl.textContent = t('fire.needNet');
-  const fireProgressEl = document.querySelector('.fire-progress-label span:first-child');
-  if (fireProgressEl) fireProgressEl.textContent = t('fire.progress');
-
-  const iNow = pN('investAsset');
-  const accNow = accounts.reduce((s, a) => s + objectMoney(a, 'balance'), 0);
-  const nowTotal = iNow + accNow;
-
-  let retireTotal = 0;
-  if (rows) {
-    const retAge = pN('retireAge');
-    const rr = rows.find(r => r.age === retAge);
-    if (rr) retireTotal = rr.totalLiquid;
-  }
-
-  const pct = fireTarget > 0 ? Math.min((nowTotal / fireTarget) * 100, 150) : 0;
-  const retirePct = fireTarget > 0 ? Math.min((retireTotal / fireTarget) * 100, 150) : 0;
-
-  document.getElementById('firePct').textContent = pct.toFixed(1) + '%';
-  document.getElementById('fireFill').style.width = Math.min(pct, 100).toFixed(1) + '%';
-  document.getElementById('fireFill').style.background = pct >= 100 ? 'linear-gradient(90deg,var(--teal),var(--green))' : pct >= 60 ? 'linear-gradient(90deg,var(--teal),var(--gold))' : 'linear-gradient(90deg,var(--red),var(--gold))';
-  document.getElementById('fireNow').textContent = t('fire.now') + ' ' + fmt(nowTotal) + ' (' + pct.toFixed(0) + '%)';
-  document.getElementById('fireRetireEst').textContent = t('fire.atRetire') + ' ' + fmt(retireTotal) + ' (' + retirePct.toFixed(0) + '%)';
-}
-
-// ═══════════════════════════════════════════════════
-// RENDER ALL
-// ═══════════════════════════════════════════════════
 function renderAll() {
   renderEventTimeline();
   if (!prepareRender()) { saveState(); return; }
-  const rows = simulate(currentSc);
-  if (chartMode === 'housing' && housingScenarios.length > 0) {
-    housingResult = simulateHousing();
-    updateHousingBreakevenLabel(housingResult);
-    renderHousingTable(housingResult);
+  try {
+    const rows = simulate(currentSc);
+    renderProjectionPeriodNote(rows[0]);
+    if (chartMode === 'housing' && housingScenarios.length > 0) {
+      housingResult = simulateHousing();
+      updateHousingBreakevenLabel(housingResult);
+      renderHousingTable(housingResult);
+    }
+    renderSummary(rows);
+    if (typeof Chart !== 'undefined') renderChart(rows);
+    renderTable(rows);
+    render4pct(rows);
+    enhanceAccessibility();
+    enhanceFinanceCards();
+  } catch (error) {
+    pauseResults(error.message === 'fx-required'
+      ? L('An exchange rate is required for these currency inputs. Refresh or enter a manual rate.', '입력 통화 환산에 환율이 필요합니다. 갱신하거나 수동 입력하세요.')
+      : L('Check model settings: ', '모델 설정을 확인하세요: ') + error.message);
+    const box = document.getElementById('financeFormError');
+    if (box) box.textContent = error.message;
   }
-  renderSummary(rows);
-  renderChart(rows);
-  renderTable(rows);
-  render4pct(rows);
-  enhanceAccessibility();
   saveState();
 }
 
-// ═══════════════════════════════════════════════════
-// SCENARIO
-// ═══════════════════════════════════════════════════
 function switchSc(k) {
   currentSc = k;
   ['base', 'opt', 'pes'].forEach(sc => document.getElementById('tab-' + sc)?.classList.toggle('active', sc === k));
@@ -1376,42 +889,41 @@ function updateMcSuccessLabel() {
   if (chartMode === 'montecarlo' && mcResult != null) {
     var pct = (mcResult.successRate * 100).toFixed(1);
     var extra = (mcResult.depletedCount != null && mcResult.depletedCount > 0)
-      ? ' (' + mcResult.depletedCount + ' depleted)'
+      ? ' (' + mcResult.depletedCount + L(' unfunded)', '개 경로 자금 부족)')
       : '';
     if (mcResult.pathsIdentical) extra = L(' (identical paths for these inputs)', ' (현재 입력에서 경로가 동일함)');
-    el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra;
+    el.textContent = t('chart.mcSuccess') + ': ' + pct + '%' + extra +
+      (mcResult.provisional ? L(' · provisional', ' · 잠정') : '') +
+      (mcResult.runs ? ` · n=${mcResult.runs}, seed=${mcResult.seed}` : '');
     el.classList.remove('hidden');
   } else {
     el.textContent = '';
   }
 }
 
-function runMonteCarloUI() {
+async function runMonteCarloUI() {
   if (!prepareRender()) return;
-  document.getElementById('mcStale').hidden = true;
+  const state = captureState();
+  const fingerprint = financeModelFingerprint(state);
   const btn = document.getElementById('btnRunMC');
-  const origText = btn ? btn.textContent : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = t('chart.mcRunning');
-  }
-  setTimeout(() => {
-    try {
-      runMonteCarlo();
-      updateMcSuccessLabel();
-      renderChart(mcResult);
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = t('chart.mcRun');
-      }
+  if (btn) { btn.disabled = true; btn.textContent = t('chart.mcRunning'); }
+  try {
+    const result = await financeMonteCarloAsync(state);
+    if (financeModelFingerprint(captureState()) !== fingerprint) {
+      document.getElementById('mcStale').hidden = false;
+      return;
     }
-  });
+    mcResult = formatFinanceMonteCarlo(state, result);
+    document.getElementById('mcStale').hidden = true;
+    updateMcSuccessLabel();
+    renderAll();
+  } catch (error) {
+    setNotice(L('Simulation could not complete: ', '시뮬레이션을 완료하지 못했습니다: ') + error.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = t('chart.mcRun'); }
+  }
 }
 
-// ═══════════════════════════════════════════════════
-// ACCOUNTS
-// ═══════════════════════════════════════════════════
 function addAccount(opts = {}) {
   const id = ++acid;
   accounts.push({
@@ -1420,7 +932,7 @@ function addAccount(opts = {}) {
     type: opts.type || 'roth',
     name: opts.name || '',
     balance: opts.balance || '',
-    rate: opts.rate ?? '7',
+    rate: opts.rate ?? (['cash', 'dc_kr', 'irp_kr'].includes(opts.type) ? '0' : '7'),
     contribSelf: opts.contribSelf || '',
     contribSelfRate: opts.contribSelfRate || '',
     contribEmployer: opts.contribEmployer || '',
@@ -1431,7 +943,7 @@ function addAccount(opts = {}) {
     contribStartAge: opts.contribStartAge ?? '',
     contribEndAge: opts.contribEndAge ?? '',
     withdrawTaxRate: opts.withdrawTaxRate || '0',
-    retireDrawAge: opts.retireDrawAge ?? (opts.type === 'taxable' ? '' : '60'),
+    retireDrawAge: opts.retireDrawAge ?? (['taxable', 'cash'].includes(opts.type) ? '' : '60'),
   });
   renderAccountList();
   renderAll();
@@ -1440,6 +952,11 @@ function addAccount(opts = {}) {
 function removeAccount(id) {
   rememberUndo();
   accounts = accounts.filter(a => a.id !== id);
+  for (const group of ['rsu', 'espp']) for (const record of financeEnsure()[group]) { if (Number(record.accountId) === id) record.accountId = null; }
+  for (const benefit of financeEnsure().dbBenefits) {
+    if (Number(benefit.sourceAccountId) === id) benefit.sourceAccountId = null;
+    if (Number(benefit.destinationAccountId) === id) benefit.destinationAccountId = null;
+  }
   events.forEach(e => { if (Number(e.drainAccountId) === id) delete e.drainAccountId; });
   renderAccountList();
   renderAll();
@@ -1449,7 +966,14 @@ function updateAccount(id, field, value) {
   const a = accounts.find(x => x.id === id);
   if (!a) return;
   a[field] = value;
-  if (field === 'type' && value !== 'taxable' && !a.retireDrawAge) a.retireDrawAge = '60';
+  if (field === 'withdrawTaxRate') financeEnsure().accounts[id].effectiveTaxPct = value;
+  if (field === 'type' && !['taxable', 'cash'].includes(value) && !a.retireDrawAge) a.retireDrawAge = '60';
+  if (field === 'type' && !['traditional', 'pension_kr', 'dc_kr', 'irp_kr'].includes(value)) {
+    for (const benefit of financeEnsure().dbBenefits) {
+      if (Number(benefit.sourceAccountId) === id) benefit.sourceAccountId = null;
+      if (Number(benefit.destinationAccountId) === id) benefit.destinationAccountId = null;
+    }
+  }
   if (field === 'name') {
     const nameEl = document.querySelector('#ac-' + id + ' .acc-name');
     if (nameEl) nameEl.textContent = value || getAccTypeLabel(a.type);
@@ -1558,7 +1082,7 @@ function renderAccountList() {
             <div class="iw"><input class="acc-num" type="number" value="${a.contribEndAge ?? ''}" placeholder="${t('acc.contribEndPlaceholder')}" min="1" max="99" oninput="updateAccount(${a.id},'contribEndAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
         </div>
-        ${a.type === 'taxable' ? `<p class="taxable-withdrawal-note" style="font-size:12px;color:var(--text2);margin:8px 0">${L('Available at any age — no withdrawal-age restriction.', '인출 나이 제한 없이 사용할 수 있습니다.')}</p>` : `<div class="row2">
+        ${['taxable', 'cash'].includes(a.type) ? `<p class="taxable-withdrawal-note" style="font-size:12px;color:var(--text2);margin:8px 0">${L('Available at any age — no withdrawal-age restriction.', '인출 나이 제한 없이 사용할 수 있습니다.')}</p>` : `<div class="row2">
           <div class="field"><label>${t('acc.drawAge')}</label>
             <div class="iw"><input class="acc-num" type="number" value="${a.retireDrawAge}" placeholder="60" oninput="updateAccount(${a.id},'retireDrawAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
@@ -1601,6 +1125,7 @@ function addEvent(opts = {}) {
 function removeEvent(id) {
   rememberUndo();
   events = events.filter(e => e.id !== id);
+  for (const benefit of financeEnsure().dbBenefits) if (Number(benefit.replacesEventId) === id) benefit.replacesEventId = null;
   renderEventList();
   renderAll();
 }
@@ -1611,6 +1136,9 @@ function updateEvent(id, field, value) {
   ev[field] = value;
   if (field === 'date' && value) delete ev.age;
   if (field === 'endDate') delete ev.endAge;
+  if (field === 'type' && value !== 'lumpsum-in') {
+    for (const benefit of financeEnsure().dbBenefits) if (Number(benefit.replacesEventId) === id) benefit.replacesEventId = null;
+  }
   if (field === 'name') {
     const lbl = document.querySelector('#ev-' + id + ' .ev-lbl');
     if (lbl) lbl.textContent = value || t('ev.noName');
@@ -1650,7 +1178,7 @@ function renderEventList() {
     const ev = safeRecord(raw);
     const [bc, blKey] = BADGES[ev.type] || ['ebadge-income', 'evBadge.default'];
     const bl = t(blKey);
-    const isLump = ev.type.startsWith('lumpsum');
+    const isLump = ev.type.startsWith('lumpsum') || ev.type.startsWith('deposit-');
     const sfx = ev.currency + (isLump ? '' : L('/yr', '/년'));
     const card = document.createElement('div');
     card.className = 'ev-card';
@@ -1675,6 +1203,8 @@ function renderEventList() {
             <option value="expense-add" ${ev.type === 'expense-add' ? 'selected' : ''}>${t('ev.expenseAdd')}</option>
             <option value="lumpsum-out" ${ev.type === 'lumpsum-out' ? 'selected' : ''}>${t('ev.lumpOut')}</option>
             <option value="lumpsum-in" ${ev.type === 'lumpsum-in' ? 'selected' : ''}>${t('ev.lumpIn')}</option>
+            <option value="deposit-pay" ${ev.type === 'deposit-pay' ? 'selected' : ''}>${L('Rental deposit payment (asset transfer)', '임대보증금 지급 (자산 이동)')}</option>
+            <option value="deposit-return" ${ev.type === 'deposit-return' ? 'selected' : ''}>${L('Rental deposit refund (asset transfer)', '임대보증금 반환 (자산 이동)')}</option>
           </select>
         </div>
         <div class="field"><label>${t('ev.name')}</label>
@@ -1884,106 +1414,7 @@ function renderHousingScenarioList() {
 }
 
 // ── Housing Simulation ──
-function simulateHousing() {
-  const baseRows = simulate(currentSc);
-  const rr = pR('returnRate') + SC[currentSc].r / 100;
-  const results = [];
-
-  for (const hs of housingScenarios) {
-    if (!hs.enabled) continue;
-    const rows = [];
-    let investDelta = 0;
-    let propertyValue = 0;
-    let loanBalance = 0;
-    let depositHeld = 0;
-    let cumulativeCost = 0;
-    let annualRent = 0;
-    let currentDeposit = 0;
-    let started = false;
-    let pmt = 0;
-
-    for (let i = 0; i < baseRows.length; i++) {
-      const age = baseRows[i].age;
-      const baseNW = baseRows[i].totalLiquid;
-
-      if (age === Number(hs.startAge)) {
-        started = true;
-        if (hs.type === 'buy') {
-          const price = objectMoney(hs, 'purchasePrice');
-          const ltv = (parseFloat(hs.ltvRatio) || 0) / 100;
-          const downPayment = price * (1 - ltv);
-          loanBalance = price * ltv;
-          investDelta -= downPayment;
-          propertyValue = price;
-          // Pre-compute PMT for amortizing
-          if (loanBalance > 0 && hs.loanType === 'amortizing') {
-            const r = (parseFloat(hs.loanRate) || 0) / 100;
-            const n = parseInt(hs.loanTerm) || 30;
-            pmt = r > 0 ? loanBalance * r / (1 - Math.pow(1 + r, -n)) : loanBalance / n;
-          }
-        } else if (hs.type === 'jeonse') {
-          currentDeposit = objectMoney(hs, 'deposit');
-          investDelta -= currentDeposit;
-          depositHeld = currentDeposit;
-        } else if (hs.type === 'rent') {
-          const dep = objectMoney(hs, 'rentDeposit') || 0;
-          investDelta -= dep;
-          depositHeld = dep;
-          annualRent = (objectMoney(hs, 'monthlyRent') || 0) * 12;
-        }
-      }
-
-      if (started && age > hs.startAge) {
-        // Apply return on delta from previous year
-        investDelta *= (1 + rr);
-
-        if (hs.type === 'buy') {
-          propertyValue *= (1 + (parseFloat(hs.appreciationRate) || 0) / 100);
-          const maint = objectMoney(hs, 'annualMaintenance') || 0;
-          investDelta -= maint;
-          cumulativeCost += maint;
-          if (loanBalance > 0) {
-            const r = (parseFloat(hs.loanRate) || 0) / 100;
-            if (hs.loanType === 'amortizing') {
-              const interest = loanBalance * r;
-              const principal = Math.min(pmt - interest, loanBalance);
-              loanBalance = Math.max(0, loanBalance - principal);
-              investDelta -= pmt;
-              cumulativeCost += pmt;
-            } else {
-              const interest = loanBalance * r;
-              investDelta -= interest;
-              cumulativeCost += interest;
-            }
-          }
-        } else if (hs.type === 'jeonse') {
-          const cycle = parseInt(hs.renewalCycle) || 2;
-          const yearsIn = age - hs.startAge;
-          if (cycle > 0 && yearsIn % cycle === 0) {
-            const rate = (parseFloat(hs.depositRenewalRate) || 0) / 100;
-            const newDeposit = currentDeposit * (1 + rate);
-            const diff = newDeposit - currentDeposit;
-            investDelta -= diff;
-            depositHeld += diff;
-            cumulativeCost += diff;
-            currentDeposit = newDeposit;
-          }
-        } else if (hs.type === 'rent') {
-          investDelta -= annualRent;
-          cumulativeCost += annualRent;
-          annualRent *= (1 + (parseFloat(hs.rentIncreaseRate) || 0) / 100);
-        }
-      }
-
-      const netWorth = baseNW + investDelta + propertyValue - loanBalance;
-      rows.push({ age, year: baseRows[i].year, netWorth, propertyValue, loanBalance, depositHeld, cumulativeCost });
-    }
-
-    results.push({ id: hs.id, name: hs.name || t('housing.scenario') + ' ' + String.fromCharCode(65 + results.length), type: hs.type, rows });
-  }
-
-  return { scenarios: results, breakeven: calcBreakeven(results) };
-}
+function simulateHousing() { return financeCompareHousing(); }
 
 function calcBreakeven(results) {
   const breakeven = {};

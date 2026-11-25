@@ -160,7 +160,7 @@ function confirmLegacyCurrency(raw) {
   return c;
 }
 function normalizedImport(raw) {
-  if (raw?.schemaVersion === NWCore.VERSION) return NWCore.validate(raw);
+  if ([2, NWCore.VERSION].includes(raw?.schemaVersion)) return NWCore.validate(raw);
   if (!raw || raw.schemaVersion != null || typeof raw.inputs !== 'object' || raw.inputs === null) throw new Error('schema');
   const c = confirmLegacyCurrency(raw);
   return c ? NWCore.migrate(raw, c) : null;
@@ -277,7 +277,7 @@ function prepareRender() {
   if (!W.ready) return false;
   try {
     const state = captureState();
-    const fingerprint = JSON.stringify({ projectionStartDate: state.projectionStartDate, inputs: state.inputs, money: state.money, accounts: state.accounts, events: state.events, housingScenarios: state.housingScenarios, fx: state.fx, currentSc });
+    const fingerprint = financeModelFingerprint({ ...state, currentSc });
     if (W.fingerprint && W.fingerprint !== fingerprint && mcResult) {
       mcResult = null;
       document.getElementById('mcStale').hidden = false;
@@ -439,6 +439,7 @@ function setupWorkspace() {
   stale.textContent = L('Inputs changed. Run Monte Carlo again; the chart below is the single-path preview.', '입력이 변경되었습니다. 몬테카를로를 다시 실행하세요. 아래 차트는 단일 경로 미리보기입니다.');
   document.getElementById('mc-controls').after(stale);
   applyLocale();
+  setupFinanceBaseFields();
   addMoneyEditors();
   setupEventDates();
   let storage;
@@ -468,6 +469,7 @@ function setupWorkspace() {
       : L('No encrypted file backup downloaded on this browser yet.', '이 브라우저에서 아직 암호화 백업 파일을 다운로드하지 않았습니다.');
   } catch (_) {}
   W.ready = true;
+  setupFinanceControls();
   document.getElementById('displayCurrency').addEventListener('change', e => setDisplayCurrency(e.target.value));
   for (const [id, fn] of Object.entries({ refreshFx: () => refreshFx(), useManualFx, migrateLegacy: migrateLegacySave, saveCurrentEntries, downloadRecovery, restorePrevious, undoDelete })) {
     document.getElementById(id).addEventListener('click', fn);

@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await delay(100);
     assert(window.testErrors.length === 0, 'No startup errors: ' + testErrors.join('; '));
     assert(W.ready, 'Workspace initialized');
-    assert(document.querySelectorAll('.dual-money').length === 12, 'All monetary inputs have both currencies');
+    assert(document.querySelectorAll('.dual-money').length === NWCore.MONEY_IDS.length, 'All monetary inputs have both currencies');
     assert(document.querySelectorAll('[id="investAsset"]').length === 1, 'No duplicate base input IDs');
     assert(document.querySelector('[data-i18n="tooltip.wageGrowth"]'), 'Translation preserves nested help');
     assert(!document.querySelector('meta[name="viewport"]').content.includes('user-scalable=no'), 'Zoom is allowed');
@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       equal(broken.getItem(NWCore.KEY), '{bad', 'Corrupt bytes preserved');
 
       const taxableState = NWCore.emptyState();
+      taxableState.projectionStartDate = '2030-01-01'; // This case tests a full-year withdrawal, not proration.
       taxableState.fx = fx;
       Object.assign(taxableState.inputs, {
         currentAge: '35', retireAge: '35', returnRate: '0', inflation: '0', wageGrowthRate: '0',
@@ -198,8 +199,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       await runEventDateTests({ assert, equal, near, throws });
       runEventCurrencyTests({ assert, equal, near });
+      await runFinanceUiTests({ assert, equal, near });
 
       const s = NWCore.emptyState();
+      s.projectionStartDate = '2030-01-01'; // Analytic full-year contribution/currency fixture.
       s.fx = fx;
       s.inputs.returnRate = '0'; s.inputs.inflation = '0'; s.inputs.wageGrowthRate = '0';
       s.money.investAsset = { USD: '1000', KRW: '1250000' };
@@ -304,7 +307,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('returnVolatility').value = '0';
       renderAll();
       const actualMC = runMonteCarlo();
-      near(actualMC.p50[0], simulate()[0].totalLiquid, 'Actual 1000-path zero-volatility median matches single path');
+      near(actualMC.p50[0], simulate()[0].netWorth, 'Actual 1000-path zero-volatility net-worth median matches single path');
       setDisplayCurrency('KRW');
       near(chartInst.data.datasets[1].data[0], actualMC.p50[0] * fx.rate, 'Monte Carlo data converts to KRW');
       assert(mcResult === actualMC, 'Display toggle does not rerun or invalidate Monte Carlo');
