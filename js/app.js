@@ -952,6 +952,10 @@ function addAccount(opts = {}) {
 function removeAccount(id) {
   rememberUndo();
   accounts = accounts.filter(a => a.id !== id);
+  for (const rule of financeEnsure().allocations) if (Number(rule.accountId) === id) { rule.accountId = null; rule.enabled = false; }
+  for (const plan of financeEnsure().planningItems) if (plan.referenceGroup === 'accounts' && Number(plan.referenceId) === id) {
+    plan.referenceId = ''; plan.reviewConfirmed = false;
+  }
   for (const group of ['rsu', 'espp']) for (const record of financeEnsure()[group]) { if (Number(record.accountId) === id) record.accountId = null; }
   for (const benefit of financeEnsure().dbBenefits) {
     if (Number(benefit.sourceAccountId) === id) benefit.sourceAccountId = null;
@@ -968,6 +972,9 @@ function updateAccount(id, field, value) {
   a[field] = value;
   if (field === 'withdrawTaxRate') financeEnsure().accounts[id].effectiveTaxPct = value;
   if (field === 'type' && !['taxable', 'cash'].includes(value) && !a.retireDrawAge) a.retireDrawAge = '60';
+  if (field === 'type' && value !== 'taxable') {
+    for (const rule of financeEnsure().allocations) if (Number(rule.accountId) === id) { rule.accountId = null; rule.enabled = false; }
+  }
   if (field === 'type' && !['traditional', 'pension_kr', 'dc_kr', 'irp_kr'].includes(value)) {
     for (const benefit of financeEnsure().dbBenefits) {
       if (Number(benefit.sourceAccountId) === id) benefit.sourceAccountId = null;

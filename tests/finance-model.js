@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     s.finance.dbBenefits.pop();
     equal(NWCore.validate(s).finance.dbBenefits[0].expectedAmount, 500, 'DB survives validated profile round trip');
     const versionOne = base(); versionOne.finance.version = 1; delete versionOne.finance.dbBenefits;
-    equal(NWCore.validate(versionOne).finance.version, 2, 'Finance schema one migrates to schema two');
+    equal(NWCore.validate(versionOne).finance.version, 3, 'Finance schema one migrates to current schema');
     equal(NWCore.validate(versionOne).finance.dbBenefits, [], 'Prior finance profiles do not acquire invented DB entitlement');
     assert(!NWFinanceState.newRecord('dbBenefits').enabled, 'New DB record is disabled until explicitly included');
     const older = structuredClone(s); older.schemaVersion = 2; delete older.finance; delete older.money.rentalDepositAsset;
@@ -323,6 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     f1.includedInFlowId = f2.id; f2.includedInFlowId = f1.id;
     throws(() => NWCore.validate(cycle), 'Circular budget inclusion cannot erase expenses');
     throws(() => tax.grow(broker, 1, NaN), 'Non-finite market overrides rejected');
+    runAllocationModelTests({ assert, near, equal, throws, base, account, flow, sim });
     assert(!financeErrors.length, 'No finance runtime errors');
   } catch (error) { failed.push(error.stack || String(error)); }
   document.getElementById('results').textContent = JSON.stringify({ passed, failed }, null, 2);

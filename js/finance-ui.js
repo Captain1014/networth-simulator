@@ -3,6 +3,18 @@ function financeLabel(text) {
   const parts = String(text || '').split(' / ');
   return LOCALE === 'ko' ? parts[parts.length - 1] : parts[0];
 }
+function financeRefreshStatuses() {
+  let state;
+  try { state = captureState(); } catch (_) { return; }
+  for (const element of document.querySelectorAll('.finance-allocation-status')) {
+    const rule = state.finance.allocations.find(x => x.id === element.dataset.ruleId);
+    if (!rule) continue;
+    const missing = NWFinanceState.allocationIssues(state, rule);
+    element.textContent = missing.length ? L('Paused — required: ', '계산 보류 — 필수 입력: ') + missing.join(', ') :
+      rule.enabled ? L('Configured; subject to dates/scenario and cash availability', '설정됨 · 날짜·시나리오·가용 현금 조건 적용') :
+        L('Configured but disabled', '설정됨 · 사용 꺼짐');
+  }
+}
 function financeEnsure() {
   W.state.finance ||= NWFinanceState.defaults();
   for (const a of accounts) W.state.finance.accounts[a.id] ||= NWFinanceState.accountDefaults(a);
@@ -21,6 +33,7 @@ function financeSet(path, value) {
     captureState();
     renderAll();
     document.getElementById('financeFormError').textContent = '';
+    financeRefreshStatuses();
   } catch (error) {
     document.getElementById('financeFormError').textContent = L('Check setting: ', '설정을 확인하세요: ') + error.message;
     renderAll();
@@ -36,13 +49,20 @@ function financeField(path, spec, container) {
   let input;
   const key = path.at(-1);
   const references = ['scenarioId', 'endOnScenario', 'payrollSourceId', 'includedInFlowId', 'replaceRentFlowId', 'tcParentId', 'accountId',
-    'sourceAccountId', 'destinationAccountId', 'replacesFlowId', 'replacesEventId'];
+    'sourceAccountId', 'destinationAccountId', 'replacesFlowId', 'replacesEventId', 'sourceFlowId', 'referenceId'];
   if (references.includes(key)) {
     input = document.createElement('select');
     const none = document.createElement('option'); none.value = ''; none.textContent = L('None / not entered', '없음 / 미입력'); input.appendChild(none);
     let choices = [];
     const f = financeEnsure();
-    if (['sourceAccountId', 'destinationAccountId'].includes(key)) choices = accounts
+    if (key === 'referenceId') {
+      const group = f.planningItems[path[1]].referenceGroup;
+      choices = group === 'accounts' ? accounts.map(x => [x.id, x.name || getAccTypeLabel(x.type)]) :
+        group === 'cash' ? ['USD', 'KRW'].map(x => [x, x]) :
+        ['retirement', 'benefits'].includes(group) ? [[group, group]] :
+        Array.isArray(f[group]) ? f[group].map(x => [x.id, x.name || x.id]) : [];
+    } else if (key === 'sourceFlowId') choices = f.flows.filter(x => x.kind === 'business').map(x => [x.id, x.name || x.id]);
+    else if (['sourceAccountId', 'destinationAccountId'].includes(key)) choices = accounts
       .filter(a => ['traditional', 'pension_kr', 'dc_kr', 'irp_kr'].includes(a.type)).map(a => [a.id, a.name || getAccTypeLabel(a.type)]);
     else if (key === 'replacesEventId') choices = events.filter(e => e.type === 'lumpsum-in').map(e => [e.id, e.name || String(e.id)]);
     else if (key === 'replacesFlowId') choices = f.flows.filter(x => x.frequency === 'once' && !['expense', 'gross_tc'].includes(x.kind)).map(x => [x.id, x.name || x.id]);
@@ -82,7 +102,12 @@ function financeField(path, spec, container) {
   input.addEventListener('change', () => {
     let value = spec.type === 'boolean' ? input.checked : input.value;
     if (spec.type === 'number' || key === 'accountId') value = input.value === '' ? null : input.value;
+    if (key === 'referenceGroup') {
+      financeEnsure().planningItems[path[1]].referenceId = '';
+      financeEnsure().planningItems[path[1]].reviewConfirmed = false;
+    }
     financeSet(path, value);
+    if (key === 'referenceGroup') renderFinanceForm();
     if (key === 'name') field.closest('details')?.querySelector('summary')?.replaceChildren(document.createTextNode(input.value || L('Unnamed', '이름 없음')));
   });
   field.append(label, input); container.appendChild(field);
@@ -132,11 +157,12 @@ function removeFinanceRecord(group, index) {
   if (!confirm(L('Remove this record? Input changes are not an undo history; download a backup first if needed.',
     '이 항목을 삭제할까요? 필요하면 먼저 백업을 다운로드하세요.'))) return;
   if (group === 'scenarios') {
-    const referenced = [...f.flows, ...f.rsu, ...f.espp, ...f.homes, ...f.dbBenefits].some(x => x.scenarioId === item.id || x.endOnScenario === item.id) ||
+    const referenced = [...f.flows, ...f.rsu, ...f.espp, ...f.homes, ...f.dbBenefits, ...f.allocations, ...f.comparisons].some(x => x.scenarioId === item.id || x.endOnScenario === item.id) ||
       events.some(e => e.scenarioId === item.id) || Object.values(f.accounts).some(x => x.endOnScenario === item.id);
     if (referenced) { item.enabled = false; renderFinanceForm(); renderAll(); return; }
   }
   if (group === 'flows') {
+    for (const comparison of f.comparisons) if (comparison.sourceFlowId === item.id) { comparison.sourceFlowId = ''; comparison.enabled = false; }
     for (const benefit of f.dbBenefits) if (benefit.replacesFlowId === item.id) benefit.replacesFlowId = '';
     for (const flow of f.flows) {
       if (flow.includedInFlowId === item.id) flow.includedInFlowId = '';
@@ -147,6 +173,9 @@ function removeFinanceRecord(group, index) {
       plan.enabled = false; plan.payrollSourceId = ''; plan.netPayAlreadyDeducted = false;
     }
     for (const home of f.homes) if (home.replaceRentFlowId === item.id) { home.enabled = false; home.replaceRentFlowId = ''; }
+  }
+  for (const plan of f.planningItems) if (plan.referenceGroup === group && plan.referenceId === item.id) {
+    plan.referenceId = ''; plan.reviewConfirmed = false;
   }
   f[group].splice(index, 1); renderFinanceForm(); renderAll();
 }
@@ -183,6 +212,12 @@ function renderFinanceForm() {
       confirmed: { type: 'boolean', label: 'Cash assumptions reviewed / 현금 가정 확인' },
     };
     for (const [key, spec] of Object.entries(specs)) financeField(['cash', c, key], spec, body);
+    const reserve = financeSection(modal, `${c} ${L('protected cash targets', '보호 현금 목표')}`, true);
+    for (const [key, spec] of Object.entries(NWFinanceState.reserveSchema)) financeField(['cashReserves', c, key], spec, reserve.body);
+    const note = document.createElement('p');
+    note.textContent = L('Enter 0 explicitly only if no reserve is required. Targets are manual cash earmarks, not new assets or automatic forecasts of future bills. Required spending may still use this cash.',
+      '보호할 금액이 없을 때만 0을 직접 입력하세요. 수동 현금 적립 목표이며 새 자산이나 향후 지출의 자동 추정이 아닙니다. 필수 지출에는 이 현금을 사용할 수 있습니다.');
+    reserve.body.appendChild(note);
   }
   for (const a of accounts) {
     const { details, body } = financeSection(modal, `${a.name || getAccTypeLabel(a.type)} · ${a.currency}`);
@@ -226,11 +261,27 @@ function renderFinanceForm() {
     for (const [key, spec] of Object.entries(schema)) financeField([group, key], spec, body);
   }
   for (const [group, schema] of Object.entries(NWFinanceState.schemas)) {
-    const groupName = group === 'dbBenefits' ? L('DB / severance benefits', 'DB형·일시금 퇴직급여') : group;
+    const groupName = ({ dbBenefits: L('DB / severance benefits', 'DB형·일시금 퇴직급여'),
+      allocations: L('Automatic surplus investing', '신규 잉여자금 자동 투자'),
+      planningItems: L('Plan input review', '인생계획 입력 검토'),
+      comparisons: L('Replacement revenue comparisons', '매출 대체 비교') })[group] || group;
     const { details, body } = financeSection(modal, `${groupName} · ${financeEnsure()[group].length}`);
     details.id = 'finance-group-' + group;
     details.open = previouslyOpen.has(details.id);
     body.classList.add('finance-records');
+    if (group === 'allocations' || group === 'planningItems' || group === 'comparisons') {
+      const help = document.createElement('p'); help.id = 'finance-' + group + '-help';
+      help.textContent = ({
+        allocations: L(
+          'Simulation only, not brokerage orders. At month end invest the chosen share of the smaller of new net surplus and source cash above both reserve targets. Existing cash, refunds and asset withdrawals are not new earnings. Expenses, ESPP and existing savings come first. Months with account withdrawals or funding gaps do not auto-invest. Dates govern settlement dates; ends are exclusive. Blank start uses projection start. Missing required inputs pause investing. Enabled periods cannot overlap within a source currency.',
+          '투자 주문이 아닌 시뮬레이션입니다. 월말 신규 순잉여와 두 보호 목표를 초과한 출금 통화 현금 중 작은 금액에 지정 비율을 적용합니다. 기존 현금·반환금·자산 인출은 신규 소득이 아닙니다. 지출·ESPP·기존 납입을 먼저 처리하고 계좌 인출·자금 부족 발생 월에는 자동 투자하지 않습니다. 날짜는 정산일 기준이며 종료일은 제외합니다. 시작일 빈칸은 예측 시작일입니다. 필수 입력 빈칸은 계산 보류이며 통화별 활성 기간은 겹칠 수 없습니다.'),
+        planningItems: L('Planning amounts are notes, not additional cash flows. Recorded, input-ready and included in the base are distinct states.',
+          '계획 금액은 메모이며 현금흐름에 더하지 않습니다. 기록 존재·필수 입력 완료·기준 계산 포함을 각각 구분합니다.'),
+        comparisons: L('After entering a start date, costs and tax, run manually. A separate calculation replaces one business flow; it never adds revenue to the base.',
+          '시작일·사업비·세율 입력 후 수동 실행합니다. 별도 계산에서 기존 사업 흐름 하나를 대체하며 기준 예측에 매출을 더하지 않습니다.'),
+      })[group];
+      body.appendChild(help);
+    }
     if (group === 'dbBenefits') {
       const help = document.createElement('p'); help.id = 'finance-db-help';
       help.textContent = L(
@@ -249,6 +300,27 @@ function renderFinanceForm() {
       for (const [key, spec] of Object.entries(schema)) {
         if (group === 'scenarios' && key === 'scenarioId') continue;
         financeField([group, index, key], spec, recordSection.body);
+      }
+      if (group === 'allocations') {
+        const status = document.createElement('p'); status.className = 'finance-allocation-status';
+        status.dataset.ruleId = record.id; status.setAttribute('aria-live', 'polite');
+        recordSection.body.appendChild(status);
+      }
+      if (group === 'comparisons') {
+        const run = document.createElement('button'); run.type = 'button'; run.textContent = L('Run replacement comparison', '매출 대체 비교 실행');
+        const output = document.createElement('p'); output.className = 'finance-comparison-result'; output.setAttribute('aria-live', 'polite');
+        run.addEventListener('click', () => {
+          try {
+            const state = captureState(), comparison = state.finance.comparisons[index];
+            const result = NWFinanceEngine.compareFlow(state, comparison.id);
+            if (!result.ready) { output.textContent = L('Required inputs: ', '필수 입력: ') + result.missing.join(', '); return; }
+            const original = NWFinanceEngine.simulate(state).rows.find(x => x.age === Number(state.inputs.retireAge));
+            const retirement = result.result.rows.find(x => x.age === Number(state.inputs.retireAge));
+            output.textContent = L('Separate provisional comparison — retirement net worth: ', '별도 잠정 비교 — 은퇴 시 순자산: ') +
+              fmt(retirement.netWorth) + L(' · change vs base: ', ' · 기준 대비: ') + fmt(retirement.netWorth - original.netWorth);
+          } catch (_) { output.textContent = L('Check comparison settings.', '비교 설정을 확인하세요.'); }
+        });
+        recordSection.body.append(run, output);
       }
       if (['rsu', 'espp'].includes(group)) {
         const listKey = group === 'rsu' ? 'schedule' : 'purchases';
@@ -276,6 +348,7 @@ function renderFinanceForm() {
       recordSection.body.appendChild(remove);
     });
   }
+  financeRefreshStatuses();
   enhanceAccessibility(modal);
 }
 function openFinanceSettings(accountId = null) {

@@ -13,6 +13,37 @@
     scenarioId: S('Scenario ID (blank = baseline) / 시나리오 ID'),
   };
   const schemas = {
+    allocations: {
+      ...common, enabled: B('Enable automatic investing / 자동 투자 사용'),
+      currency: E('Source cash currency / 출금 현금 통화', ['USD', 'KRW']),
+      accountId: N('Receiving brokerage account / 수령 일반 투자계좌'),
+      percentPct: P('Invest % of new surplus / 신규 잉여자금 투자 비율', null, 0, 100),
+      start: D('First eligible settlement date / 정산 적용 시작일'),
+      end: D('End date (exclusive) / 종료일'),
+    },
+    planningItems: {
+      name: S('Plan / 계획'), enabled: B('Show in review list / 검토 목록 표시', true),
+      referenceGroup: E('Linked input group / 연결 입력 종류',
+        ['none', 'flows', 'accounts', 'scenarios', 'rsu', 'espp', 'homes', 'dbBenefits', 'allocations', 'comparisons', 'cash', 'retirement', 'benefits']),
+      referenceId: S('Linked input / 연결 입력'),
+      targetDate: D('Target date (if known) / 목표 날짜'),
+      targetYear: N('Target year (if only year known) / 목표 연도', null, 9900),
+      targetAge: N('Target age (if known) / 목표 나이', null, 100),
+      amount: N('Planned amount (not an extra cash flow) / 계획 금액 (별도 현금흐름 아님)'),
+      currency: E('Currency / 통화', ['USD', 'KRW']),
+      frequency: E('Amount unit / 금액 단위', ['once', 'monthly', 'annual_rate']),
+      reviewConfirmed: B('Required assumptions reviewed / 필수 가정 검토 완료'),
+      notes: S('Missing inputs / assumptions / 미확인 입력·가정'),
+    },
+    comparisons: {
+      name: common.name, status: common.status,
+      enabled: B('Enable manual comparison only / 수동 비교 사용 (기준 예측에는 추가 안 됨)'),
+      sourceFlowId: S('Business revenue to replace / 대체할 사업 매출'),
+      amount: N('Replacement revenue per source period / 원래 단위의 대체 매출'),
+      start: D('Replacement start date / 대체 시작일'),
+      businessCost: N('Replacement business cost per period / 같은 단위 사업비'),
+      taxPct: P('Replacement effective profit tax % / 대체 사업이익 유효세율'),
+    },
     scenarios: {
       ...common, start: D('Start date / 시작일'), end: D('End date (exclusive) / 종료일'),
       description: S('Assumptions / 가정'),
@@ -117,9 +148,15 @@
     endOnScenario: S('Employment ends on scenario ID / 재직 종료 시나리오 ID'),
     balanceConfirmed: B('Current balance confirmed / 현재 잔액 확인', true),
   };
+  const reserveSchema = {
+    emergencyAmount: N('Emergency cash target / 비상금 목표'),
+    earmarkAmount: N('Additional planned lump-sum cash target / 별도 목돈 적립 목표'),
+  };
   function defaults() {
     return {
-      version: 2, useDetailedFlows: false, migrationReviewed: false, legacyEventsArchived: false,
+      version: 3, useDetailedFlows: false, migrationReviewed: false, legacyEventsArchived: false,
+      cashReserves: { USD: record({}, reserveSchema), KRW: record({}, reserveSchema) },
+      allocations: [], planningItems: [], comparisons: [],
       cash: { USD: { ratePct: 0, interestTaxPct: null, confirmed: false },
         KRW: { ratePct: 0, interestTaxPct: null, confirmed: false } },
       accounts: {}, flows: [], scenarios: [], rsu: [], espp: [], homes: [], dbBenefits: [],
@@ -187,12 +224,13 @@
   function normalize(raw, state) {
     const d = defaults();
     if (raw == null) raw = {};
-    if (!object(raw) || (raw.version != null && ![1, 2].includes(raw.version))) throw new Error('finance-schema');
+    if (!object(raw) || (raw.version != null && ![1, 2, 3].includes(raw.version))) throw new Error('finance-schema');
     const out = { ...d };
     out.useDetailedFlows = field(raw.useDetailedFlows, B('', false));
     out.migrationReviewed = field(raw.migrationReviewed, B('', false));
     out.legacyEventsArchived = field(raw.legacyEventsArchived, B('', false));
     for (const c of ['USD', 'KRW']) {
+      out.cashReserves[c] = record(raw.cashReserves?.[c] ?? {}, reserveSchema);
       out.cash[c] = record(raw.cash?.[c] ?? {}, {
         ratePct: P('rate', 0, -99.99, 1000), interestTaxPct: P('tax'), confirmed: B('confirmed'),
       });
@@ -230,7 +268,7 @@
     const allIds = Object.keys(schemas).flatMap(key => out[key].map(x => x.id));
     if (new Set(allIds).size !== allIds.length) throw new Error('finance-global-id');
     const accountIds = new Set(state.accounts.map(x => x.id));
-    for (const group of ['flows', 'rsu', 'espp', 'homes', 'dbBenefits']) {
+    for (const group of ['flows', 'rsu', 'espp', 'homes', 'dbBenefits', 'allocations', 'comparisons']) {
       for (const item of out[group]) {
         if (item.scenarioId && !scenarioIds.has(item.scenarioId)) throw new Error('scenario-reference');
         if (item.endOnScenario && !scenarioIds.has(item.endOnScenario)) throw new Error('scenario-reference');
@@ -243,6 +281,27 @@
           if (item[k] != null && (!Number.isInteger(item[k]) || item[k] < 1)) throw new Error('finance-period');
         }
       }
+    }
+    for (const rule of out.allocations) {
+      if (rule.accountId != null && state.accounts.find(a => a.id === rule.accountId)?.type !== 'taxable') throw new Error('allocation-brokerage');
+      for (const other of out.allocations) {
+        if (other.id >= rule.id || !other.enabled || !rule.enabled || other.status === 'unknown' ||
+            rule.status === 'unknown' || other.currency !== rule.currency) continue;
+        if ((rule.start || '1900-01-01') < (other.end || '9999-12-31') &&
+            (other.start || '1900-01-01') < (rule.end || '9999-12-31')) throw new Error('allocation-overlap');
+      }
+    }
+    for (const comparison of out.comparisons) {
+      if (comparison.sourceFlowId && !out.flows.some(x => x.id === comparison.sourceFlowId && x.kind === 'business')) throw new Error('comparison-source');
+    }
+    for (const item of out.planningItems) {
+      if (item.targetYear != null && (!Number.isInteger(item.targetYear) || item.targetYear < 1900)) throw new Error('plan-year');
+      if (item.targetAge != null && (!Number.isInteger(item.targetAge) || item.targetAge < 1)) throw new Error('plan-age');
+      // Some settings are normalized later; validate those singleton links below.
+      if (item.referenceId && !['retirement', 'benefits'].includes(item.referenceGroup) &&
+          !linkedRecord({ ...state, finance: out }, item)) throw new Error('plan-reference');
+      if (['retirement', 'benefits'].includes(item.referenceGroup) && item.referenceId &&
+          item.referenceId !== item.referenceGroup) throw new Error('plan-reference');
     }
     for (const cfg of Object.values(out.accounts)) {
       if (cfg.endOnScenario && !scenarioIds.has(cfg.endOnScenario)) throw new Error('scenario-reference');
@@ -355,5 +414,106 @@
     return record({ model: a.type === 'taxable' ? 'brokerage' : a.type === 'cash' ? 'cash'
       : a.type === 'roth' ? 'roth' : 'deferred' }, accountSchema);
   }
-  window.NWFinanceState = { defaults, normalize, schemas, accountSchema, newRecord, convertLegacy, accountDefaults };
+  function linkedRecord(state, item) {
+    const f = state.finance, group = item.referenceGroup, id = item.referenceId;
+    if (group === 'accounts') return state.accounts.find(x => String(x.id) === id);
+    if (group === 'cash') return ['USD', 'KRW'].includes(id) ? f.cash[id] : null;
+    if (['retirement', 'benefits'].includes(group)) return id === group ? f[group] : null;
+    return Array.isArray(f[group]) ? f[group].find(x => x.id === id) : null;
+  }
+  function allocationIssues(state, rule) {
+    const reserve = state.finance.cashReserves[rule.currency], missing = [];
+    if (rule.percentPct == null) missing.push('percentPct');
+    if (!state.accounts.some(x => x.id === rule.accountId && x.type === 'taxable' &&
+        (state.finance.accounts[x.id].owner !== 'partner' || state.finance.household.includePartner))) missing.push('accountId');
+    if (reserve.emergencyAmount == null) missing.push('emergencyAmount');
+    if (reserve.earmarkAmount == null) missing.push('earmarkAmount');
+    return missing;
+  }
+  function comparisonIssues(state, comparison) {
+    const source = state.finance.flows.find(x => x.id === comparison.sourceFlowId && x.kind === 'business'), missing = [];
+    if (!source) missing.push('sourceFlowId');
+    if (source && (source.enabled === false || source.status === 'unknown')) missing.push('source-enabled');
+    if (comparison.status === 'estimated' && !state.finance.model.includeTentative) missing.push('includeTentative');
+    if (!comparison.start) missing.push('start');
+    for (const key of ['amount', 'businessCost', 'taxPct']) if (comparison[key] == null) missing.push(key);
+    if (!state.finance.useDetailedFlows) missing.push('useDetailedFlows');
+    if (source && comparison.start && ((source.end && comparison.start >= source.end) ||
+        (source.start && comparison.start < source.start))) missing.push('source-period');
+    return missing;
+  }
+  function planningStatus(state, item, model = null) {
+    const f = state.finance, group = item.referenceGroup, target = linkedRecord(state, item), missing = [];
+    if (!target) missing.push('reference');
+    if (!item.reviewConfirmed) missing.push('reviewConfirmed');
+    let included = false;
+    if (target) {
+      const active = target.enabled !== false && target.status !== 'unknown' &&
+        (target.status !== 'estimated' || f.model.includeTentative) &&
+        (!target.scenarioId || (model ? model.scenarios.has(target.scenarioId) : f.scenarios.some(x => x.id === target.scenarioId &&
+          x.enabled && x.status !== 'unknown' && (x.status !== 'estimated' || f.model.includeTentative))));
+      let required = [];
+      if (group === 'flows') {
+        required = ['amount', ...(target.taxTreatment === 'gross' ? ['taxPct'] : []),
+          ...(target.kind === 'business' ? ['businessCost'] : []), ...(target.kind === 'gross_tc' ? ['cashSharePct'] : [])];
+        if (!target.start) missing.push('start');
+        included = !!(active && f.useDetailedFlows && (!model || model.flows.some(x => x.id === target.id)));
+      } else if (group === 'allocations') {
+        missing.push(...allocationIssues(state, target));
+        included = active && !allocationIssues(state, target).length &&
+          (!model || (target.start || state.projectionStartDate) < model.end && (!target.end || target.end > model.start));
+      } else if (group === 'comparisons') {
+        missing.push(...comparisonIssues(state, target));
+        // Ready comparisons remain separate from the baseline projection.
+      } else if (group === 'rsu' || group === 'espp') {
+        const entries = group === 'rsu' ? target.schedule : target.purchases;
+        if (!entries.length) missing.push('schedule');
+        required = ['taxPct', ...(target.saleMode === 'hold' ? ['accountId'] : [])];
+        if (group === 'espp') {
+          if (!target.start) missing.push('start');
+          required.push('eligibleAnnualPay');
+          if (!target.ruleConfirmed) missing.push('ruleConfirmed');
+          if (entries.some(x => !x.offeringPrice || !x.marketPrice)) missing.push('prices');
+        } else if (entries.some(x => x.amount == null && (x.shares == null || x.price == null))) missing.push('vest-value');
+        const scenario = target.scenarioId ? f.scenarios.find(x => x.id === target.scenarioId) : null;
+        included = active && entries.some(x => (!model || x.date >= model.start && x.date < model.end) &&
+          (!scenario?.start || x.date >= scenario.start) && (!scenario?.end || x.date < scenario.end));
+      } else if (group === 'homes') {
+        if (!target.date) missing.push('date');
+        required = ['price', ...(target.downPaymentPct === 100 ? [] : ['loanRatePct']),
+          'closingCost', 'annualPropertyTax', 'annualInsurance', 'annualMaintenance'];
+        const scenario = target.scenarioId ? f.scenarios.find(x => x.id === target.scenarioId) : null;
+        included = active && !!target.date && target.price != null && (target.downPaymentPct === 100 || target.loanRatePct != null) &&
+          (!model || target.date >= model.start && target.date < model.end) &&
+          (!scenario?.start || target.date >= scenario.start) && (!scenario?.end || target.date < scenario.end);
+      } else if (group === 'accounts') {
+        const cfg = f.accounts[target.id];
+        if (!cfg.balanceConfirmed) missing.push('balanceConfirmed');
+        if (!cfg.taxConfirmed) missing.push('taxConfirmed');
+        for (const key of cfg.model === 'brokerage' ? ['costBasis', 'capitalGainsTaxPct', 'dividendTaxPct'] :
+          cfg.model === 'cash' ? ['interestTaxPct'] : ['effectiveTaxPct']) if (cfg[key] == null) missing.push(key);
+        included = cfg.owner !== 'partner' || f.household.includePartner;
+      } else if (group === 'cash') {
+        if (!target.confirmed) missing.push('confirmed');
+        required = ['ratePct', 'interestTaxPct']; included = true;
+      } else if (group === 'scenarios') {
+        if (!target.start) missing.push('start');
+        included = active && (!model || (target.start || model.start) < model.end && (!target.end || target.end > model.start));
+      } else if (group === 'retirement') {
+        required = ['partialFiFrom', 'partialFiTo', 'coveragePct', 'maintainedIncomeUSD'];
+      } else if (group === 'benefits') {
+        if (target.nationalPensionStatus === 'not_entered') missing.push('eligibility');
+      } else if (group === 'dbBenefits') {
+        if (!target.paymentDate) missing.push('paymentDate');
+        required = ['expectedAmount'];
+        included = !!model?.dbBenefits.some(x => x.id === target.id);
+      }
+      for (const key of required) if (target[key] == null) missing.push(key);
+      if (target.status === 'unknown') missing.push('status');
+    }
+    return { id: item.id, name: item.name, recordPresent: !!target, included,
+      ready: missing.length === 0, missing: [...new Set(missing)], notes: item.notes };
+  }
+  window.NWFinanceState = { defaults, normalize, schemas, accountSchema, reserveSchema, newRecord, convertLegacy,
+    accountDefaults, linkedRecord, allocationIssues, comparisonIssues, planningStatus };
 })();

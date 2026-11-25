@@ -44,7 +44,7 @@ function financeMonteCarloAsync(state) {
   if (typeof Worker === 'undefined') return Promise.resolve(NWFinanceEngine.monteCarlo(state));
   return new Promise((resolve, reject) => {
     const script = document.querySelector('script[src*="finance-adapter.js"]');
-    const url = new URL('finance-worker.js?v=20261125-3', script.src);
+    const url = new URL('finance-worker.js?v=20261125-4', script.src);
     const worker = new Worker(url);
     const timeout = setTimeout(() => { worker.terminate(); reject(new Error('simulation-timeout')); }, 180000);
     worker.onmessage = event => {
@@ -57,6 +57,20 @@ function financeMonteCarloAsync(state) {
   });
 }
 function financeText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+function financeValue(value) { return value == null ? L('Not entered', '미입력') : fmt(value); }
+function financeMissingLabel(key) {
+  const labels = { reference: 'Linked input / 연결 입력', reviewConfirmed: 'Review / 가정 검토',
+    percentPct: 'Investment percentage / 투자 비율', emergencyAmount: 'Emergency target / 비상금 목표',
+    earmarkAmount: 'Lump-sum target / 목돈 목표', accountId: 'Destination account / 수령 계좌',
+    amount: 'Amount / 금액', start: 'Start date / 시작일', schedule: 'Actual schedule / 실제 일정',
+    taxPct: 'Effective tax / 유효세율', cashSharePct: 'TC cash share / TC 현금 비중',
+    businessCost: 'Business costs / 사업비', eligibility: 'Eligibility / 수급·가입 자격',
+    taxConfirmed: 'Tax assumptions / 세금 가정', balanceConfirmed: 'Opening balance / 초기 잔액',
+    confirmed: 'Cash assumptions / 현금 가정', ratePct: 'Cash rate / 현금 금리',
+    interestTaxPct: 'Interest tax / 이자세율', status: 'Confidence / 확정 상태' };
+  return financeLabel(labels[key] || NWFinanceState.accountSchema[key]?.label ||
+    NWFinanceState.schemas.flows[key]?.label || key);
+}
 function renderFinanceSummary(rows) {
   const meta = rows.financeMeta;
   const initial = meta.initial;
@@ -88,6 +102,8 @@ function renderFinanceTable(rows) {
     L('Rental deposit', '임대보증금'), L('ESPP clearing', 'ESPP 대기자금'),
     L('DB cash settled (included)', 'DB 현금 수령 (기반영)'), L('DB retirement settled (included)', 'DB 연금계좌 정산 (기반영)'),
     L('Locked retirement', '잠긴 은퇴자산'), L('Available after estimated tax', '예상 세후 가용자금'),
+    L('Protected cash held', '보호 현금 보유액'), L('Reserve funding gap', '보호 목표 부족액'),
+    L('Available after reserve targets', '보호 목표 차감 후 가용자금'), L('Automatic investment transfers', '자동 투자 이체'),
     L('Gross TC target', '세전 TC 목표'), L('Known gross (net inputs excluded)', '확인된 세전액 (세후 입력 제외)'),
     L('Additional modeled taxes', '추가 모델 세금'), L('Employee deposits', '본인 계좌 납입'),
     L('Employer deposits', '회사 납입'), L('Loan payments', '부채 상환'),
@@ -113,10 +129,11 @@ function renderFinanceTable(rows) {
     const values = [r.income, r.expense, r.savings, r.invest,
       ...accountIds.map(id => r.accSnapshot.find(a => a.id === id)?.balance ?? 0),
       r.rentalDepositAsset, r.esppClearing, r.dbBenefitCash, r.dbBenefitTransfers, r.lockedRetirement, r.totalLiquid,
+      r.protectedCash, r.reserveShortfall, r.freeAvailable, r.autoInvested,
       r.grossTcTarget, r.grossIncome, r.taxes, r.employeeContributions, r.employerContributions,
       r.debtPayments, r.shortfall, r.netWorth];
     values.forEach((v, i) => {
-      const cell = document.createElement('td'); cell.textContent = fmt(v);
+      const cell = document.createElement('td'); cell.textContent = financeValue(v);
       if (v < 0 || (i === values.length - 2 && v > 1e-7)) cell.className = 'neg';
       line.appendChild(cell);
     });
@@ -127,9 +144,10 @@ function renderFinanceTarget(rows) {
   const { fi, bridge } = rows.financeMeta;
   financeText('fireTarget', fi.currentTarget > 0 ? fmt(fi.currentTarget) : '—');
   financeText('fireNet', fi.pensionEligibleAtRetirement ? fmt(fi.requiredAtRetirement) : '—');
-  const progress = fi.currentTarget > 0 ? fi.currentAvailable / fi.currentTarget * 100 : 0;
-  financeText('firePct', `${progress.toFixed(1)}%`);
-  document.getElementById('fireFill').style.width = Math.min(100, Math.max(0, progress)) + '%';
+  const free = rows.financeMeta.initial.freeAvailable;
+  const progress = free == null ? null : fi.currentTarget > 0 ? free / fi.currentTarget * 100 : 0;
+  financeText('firePct', progress == null ? L('Reserve targets needed', '보호 목표 입력 필요') : `${progress.toFixed(1)}%`);
+  document.getElementById('fireFill').style.width = Math.min(100, Math.max(0, progress ?? 0)) + '%';
   financeText('fireNow', `${L('Available now', '현재 가용자금')} ${fmt(fi.currentAvailable)}`);
   financeText('fireRetireEst', `${L('Future target', '은퇴 시 목표')} ${fi.requiredAtRetirement > 0 ? fmt(fi.requiredAtRetirement) : '—'}`);
   let panel = document.getElementById('financeReport');
@@ -143,6 +161,24 @@ function renderFinanceTarget(rows) {
     'Net worth includes refundable deposits and locked assets; available funds do not. Tax estimates use your effective-rate assumptions. Unfunded dated needs fail the projection even when net worth is positive.',
     '순자산에는 보증금과 잠긴 자산이 포함되지만 가용자금에는 포함되지 않습니다. 세금은 입력한 유효세율 추정입니다. 순자산이 양수여도 날짜별 필요 지출을 충당하지 못하면 실패입니다.');
   panel.appendChild(desc);
+  const liquidity = document.createElement('div'); liquidity.id = 'financeLiquidity';
+  const initial = rows.financeMeta.initial;
+  for (const [label, value] of [
+    [L('Current net worth', '현재 총순자산'), initial.netWorth],
+    [L('Available financial assets (estimated tax)', '가용 금융자산 (세금 추정)'), initial.available],
+    [L('Cash held for protection', '보호 현금 보유액'), initial.protectedCash],
+    [L('Protection targets', '보호 목표 합계'), initial.reserveTarget],
+    [L('Reserve funding gap', '보호 목표 부족액'), initial.reserveShortfall],
+    [L('Available after full protection targets', '전체 보호 목표 차감 후 가용자금'), initial.freeAvailable],
+    [L('Deposits / real assets', '보증금·실물자산'), initial.deposit + initial.realAssets],
+    [L('Locked retirement (gross)', '잠긴 은퇴자산 (세전)'), initial.locked],
+  ]) {
+    const p = document.createElement('p'); p.textContent = `${label}: ${financeValue(value)}`; liquidity.appendChild(p);
+  }
+  const caveat = document.createElement('p');
+  caveat.textContent = L('Cash targets are manual earmarks, not extra assets. Missing reserve inputs prevent a free-funds/FI conclusion. Available values are provisional when effective taxes or cost basis are unconfirmed; an unconfirmed zero is not verified tax-free treatment.',
+    '보호 목표는 수동 현금 적립액이며 추가 자산이 아닙니다. 보호 목표 미입력 시 자유 가용자금·FI를 확정하지 않습니다. 세율·취득원가 미확인 시 가용자금은 잠정 추정이며 미확인 0을 검증된 비과세로 해석하면 안 됩니다.');
+  liquidity.appendChild(caveat); panel.appendChild(liquidity);
   const b = document.createElement('p');
   b.textContent = bridge.end > bridge.start
     ? `${L('Bridge', '브리지')} ${bridge.start} → ${bridge.end} · ${L('Opening available', '시작 가용자금')} ${fmt(bridge.openingAvailable)} · ${L('Net needs', '순필요액')} ${fmt(bridge.requiredNet)} · ${L('Unfunded', '미충족')} ${fmt(bridge.shortfall)}`
@@ -160,11 +196,26 @@ function renderFinanceTarget(rows) {
     details.appendChild(title);
     for (const p of fi.partial) {
       const item = document.createElement('p');
-      item.textContent = `${p.year} · ${p.age}${t('ageSfx')} · ${L('coverage', '충당률')} ${p.coveragePct.toFixed(1)}% · ${L('additional annual work income needed', '추가 연 근로소득 필요')} ${fmt(p.workIncomeNeeded)}` +
+      item.textContent = `${p.year} · ${p.age}${t('ageSfx')} · ${L('coverage', '충당률')} ${p.coveragePct == null ? L('pending reserve inputs', '보호 목표 입력 대기') : p.coveragePct.toFixed(1) + '%'} · ${L('available after targets', '목표 차감 후 가용')} ${financeValue(p.freeAvailable)} · ${L('unfunded', '미충족')} ${fmt(p.shortfall)} · ${L('additional annual work income needed', '추가 연 근로소득 필요')} ${financeValue(p.workIncomeNeeded)}` +
         (p.maintainedWorkIncome == null ? L(' · maintained income not entered', ' · 유지 소득 미입력') : '');
       details.appendChild(item);
     }
     panel.appendChild(details);
+  }
+  if (rows.financeMeta.planning.length) {
+    const review = document.createElement('details'); review.id = 'financePlanReview';
+    const title = document.createElement('summary');
+    title.textContent = L('Plan inputs reviewed', '계획 입력 검토 완료') + ` ${rows.financeMeta.planning.filter(x => x.ready).length}/${rows.financeMeta.planning.length}`;
+    review.appendChild(title);
+    for (const plan of rows.financeMeta.planning) {
+      const p = document.createElement('p'); p.dataset.planId = plan.id;
+      p.textContent = `${plan.name} · ${L('recorded', '기록')} ${plan.recordPresent ? L('yes', '있음') : L('no', '없음')} · ` +
+        `${L('base calculation', '기준 계산')} ${plan.included ? L('included', '포함') : L('not included', '미포함')} · ` +
+        (plan.ready ? L('required inputs reviewed', '필수 입력 검토 완료') : L('pending: ', '확인 대기: ') + plan.missing.map(financeMissingLabel).join(', ')) +
+        (plan.notes ? ` · ${plan.notes}` : '');
+      review.appendChild(p);
+    }
+    panel.appendChild(review);
   }
   const audit = document.createElement('details'), auditTitle = document.createElement('summary');
   auditTitle.textContent = L('Dated ledger (first 150 entries)', '날짜별 원장 (처음 150개)');
@@ -181,6 +232,7 @@ function financeExportTable(rows, onlyRetired) {
   const list = rows.filter(r => !onlyRetired || r.isRetired);
   const headers = ['Year / age', 'Events', 'Net cash income', 'Spending needs', 'Cash surplus', 'Cash',
     'Rental deposit', 'ESPP clearing', 'DB cash settled (included)', 'DB retirement settled (included)', 'Locked assets', 'Available after estimated tax',
+    'Protected cash held', 'Reserve funding gap', 'Available after reserve targets', 'Automatic investment transfers',
     'Gross TC target', 'Gross income', 'Taxes', 'Employee contributions', 'Employer contributions',
     'Loan payments', 'Unfunded', 'Net worth'];
   const safe = value => String(value).replaceAll('|', '/').replaceAll('\n', ' ');
@@ -188,8 +240,9 @@ function financeExportTable(rows, onlyRetired) {
   for (const r of list) {
     const cells = [yearAgeLabel(r), r.events.map(e => `${e.date || ''} · ${e.label}`).join(', '),
       ...[r.income, r.expense, r.savings, r.invest, r.rentalDepositAsset, r.esppClearing, r.dbBenefitCash, r.dbBenefitTransfers, r.lockedRetirement,
-        r.totalLiquid, r.grossTcTarget, r.grossIncome, r.taxes, r.employeeContributions, r.employerContributions,
-        r.debtPayments, r.shortfall, r.netWorth].map(fmt)];
+        r.totalLiquid, r.protectedCash, r.reserveShortfall, r.freeAvailable, r.autoInvested,
+        r.grossTcTarget, r.grossIncome, r.taxes, r.employeeContributions, r.employerContributions,
+        r.debtPayments, r.shortfall, r.netWorth].map(financeValue)];
     lines.push('| ' + cells.map(safe).join(' | ') + ' |');
   }
   return lines.join('\n');
