@@ -92,6 +92,7 @@ function applyWorkspaceState(state) {
   }
   document.getElementById('showRetireOnly').checked = next.showRetireOnly;
   document.getElementById('displayCurrency').value = next.displayCurrency;
+  document.getElementById('projectionStartDate').value = next.projectionStartDate;
   ['base', 'opt', 'pes'].forEach(sc => document.getElementById('tab-' + sc)?.classList.toggle('active', sc === currentSc));
   mcResult = null;
   housingResult = null;
@@ -231,7 +232,7 @@ function prepareRender() {
   if (W.store.blocked && W.legacy) { pauseResults(L('Confirm the old data currency to continue.', '기존 데이터의 통화를 확인하면 계속할 수 있습니다.')); return false; }
   try {
     const state = captureState();
-    const fingerprint = JSON.stringify({ inputs: state.inputs, money: state.money, accounts: state.accounts, events: state.events, housingScenarios: state.housingScenarios, fx: state.fx, currentSc });
+    const fingerprint = JSON.stringify({ projectionStartDate: state.projectionStartDate, inputs: state.inputs, money: state.money, accounts: state.accounts, events: state.events, housingScenarios: state.housingScenarios, fx: state.fx, currentSc });
     if (W.fingerprint && W.fingerprint !== fingerprint && mcResult) {
       mcResult = null;
       document.getElementById('mcStale').hidden = false;
@@ -251,7 +252,7 @@ function prepareRender() {
   } catch (error) {
     pauseResults(error.message === 'fx-required'
       ? L('A valid exchange rate is required. Refresh or enter a manual rate above.', '통화 환산에 유효한 환율이 필요합니다. 위에서 갱신하거나 수동으로 입력하세요.')
-      : L('Check numeric inputs and age ranges. Results are paused; the last valid save is preserved.', '숫자 입력과 나이 범위를 확인하세요. 결과는 일시 중지되며 마지막 정상 저장본은 유지됩니다.'));
+      : L('Check numeric inputs, dates and age ranges. Results are paused; the last valid save is preserved.', '숫자, 날짜 및 나이 범위를 확인하세요. 결과는 일시 중지되며 마지막 정상 저장본은 유지됩니다.'));
     return false;
   }
 }
@@ -339,8 +340,17 @@ function validateEditor(el) {
   else if (['contribSelfRate', 'contribEmployerRate', 'matchCapPercent', 'ltvRatio'].includes(key)) max = 100;
   let valid = true;
   try {
-    const n = NWCore.number(el.value, min, max);
-    if ((isAge || ['loanTerm', 'renewalCycle'].includes(key)) && !Number.isInteger(n)) throw new Error('integer');
+    if (el.type === 'date') {
+      const eventId = Number(el.closest('.ev-card')?.id.replace('ev-', ''));
+      const event = events.find(e => e.id === eventId);
+      const optional = key === 'endDate' || (key === 'date' && event?.age != null);
+      if (el.value || !optional) NWCore.date(el.value);
+      if (el.value && ((el.min && el.value < el.min) || (el.max && el.value > el.max))) throw new Error('date');
+      if (key === 'endDate' && el.value && event?.date && el.value <= event.date) throw new Error('date');
+    } else {
+      const n = NWCore.number(el.value, min, max);
+      if ((isAge || ['loanTerm', 'renewalCycle'].includes(key)) && !Number.isInteger(n)) throw new Error('integer');
+    }
   } catch (_) { valid = false; }
   el.setAttribute('aria-invalid', String(!valid));
   let error = el.closest('.field')?.querySelector('.field-error');
@@ -349,7 +359,9 @@ function validateEditor(el) {
     error.className = 'field-error';
     el.closest('.field')?.appendChild(error);
   }
-  if (error) error.textContent = valid ? '' : L('Check this number and its allowed range.', '숫자와 허용 범위를 확인하세요.');
+  if (error) error.textContent = valid ? '' : el.type === 'date'
+    ? L('Choose a valid date. End dates must be after the event date.', '유효한 날짜를 선택하세요. 종료 날짜는 시작 날짜보다 뒤여야 합니다.')
+    : L('Check this number and its allowed range.', '숫자와 허용 범위를 확인하세요.');
 }
 function setupWorkspace() {
   const bar = document.createElement('section');
@@ -380,6 +392,7 @@ function setupWorkspace() {
   document.getElementById('mc-controls').after(stale);
   applyLocale();
   addMoneyEditors();
+  setupEventDates();
   let storage;
   try { storage = localStorage; }
   catch (_) { storage = { getItem() { throw new Error('storage'); }, setItem() { throw new Error('storage'); } }; }
@@ -411,6 +424,8 @@ function setupWorkspace() {
     document.getElementById(id).addEventListener('click', fn);
   }
   document.querySelector('.app').addEventListener('input', e => {
+    if (e.target.id === 'projectionStartDate') return;
+    if (e.target.id === 'currentAge') renderEventList();
     if (e.target.matches('input[id]') && !e.target.closest('#accountList, #eventList')) renderAll();
   });
   document.getElementById('btnAddAccount').addEventListener('click', () => addAccount());
