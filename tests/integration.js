@@ -33,11 +33,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderAll(); flushStateSave();
       equal(localStorage.getItem(NWCore.KEY), '{broken', 'Corrupt original survives edits and rate fetch');
       assert(accounts.length === 0 && events.length === 0, 'Corrupt load does not create demo data');
+      assert(!document.getElementById('resultsRegion').hidden, 'Corrupt saved copy does not block current-input calculations');
+      assert(document.querySelectorAll('#tblBody tr').length > 0, 'Current-input table remains available during corrupt-save protection');
+      window.confirm = () => true;
+      assert(saveCurrentEntries(), 'Current entries can explicitly replace unreadable save');
+      assert(!W.store.blocked, 'Explicit recovery resumes autosave');
+      equal(JSON.parse(localStorage.getItem(NWCore.KEY)).money.investAsset.USD, '123', 'Explicit recovery saves current USD input');
+      assert([...Array(localStorage.length)].some((_, i) => {
+        const key = localStorage.key(i);
+        return key.includes(':recovery:') && localStorage.getItem(key) === '{broken';
+      }), 'Unreadable original bytes are preserved in recovery copy');
     } else if (TEST_CASE === 'legacy') {
       assert(W.store.blocked && W.legacy, 'Legacy state requires currency confirmation');
       const original = localStorage.getItem(NWCore.KEY);
+      const previews = [];
+      window.confirm = message => { previews.push(message); return true; };
       window.prompt = () => null;
       migrateLegacySave();
+      assert(previews[0].includes('15000000'), 'Legacy review shows actual stored amounts before asking currency');
       equal(localStorage.getItem(NWCore.KEY), original, 'Cancelled migration preserves original');
       window.prompt = () => 'KRW';
       window.confirm = () => true;
@@ -45,6 +58,48 @@ document.addEventListener('DOMContentLoaded', async () => {
       equal(getStateForExport().money.investAsset, { USD: '', KRW: '15000000' }, 'Legacy values preserved in confirmed currency');
       assert(!W.store.blocked, 'Confirmed migration resumes saving');
       assert([...Array(localStorage.length)].some((_, i) => localStorage.key(i).includes(':recovery:')), 'Migration keeps recovery original');
+    } else if (TEST_CASE === 'legacy-edited' || TEST_CASE === 'legacy-import') {
+      const original = localStorage.getItem(NWCore.KEY);
+      assert(W.store.blocked && W.legacy, 'Legacy protection remains enabled initially');
+      document.getElementById('investAsset').value = '1000';
+      document.getElementById('investAsset_KRW').value = '1250000';
+      document.getElementById('annualIncome').value = '100';
+      renderAll();
+      assert(!document.getElementById('resultsRegion').hidden, 'Entering money shows results without a migration requirement');
+      assert(document.querySelectorAll('#tblBody tr').length > 0, 'Entering money shows the yearly table');
+      equal(document.getElementById('sumNW').textContent, fmt(2000), 'Paused-save summary uses current USD and KRW values');
+      flushStateSave();
+      equal(localStorage.getItem(NWCore.KEY), original, 'Calculations do not overwrite old saved data');
+      window.prompt = () => { throw new Error('Current USD/KRW input must not trigger legacy currency prompt'); };
+      window.confirm = () => false;
+      assert(!saveCurrentEntries(), 'Cancelling current-input save does nothing');
+      equal(localStorage.getItem(NWCore.KEY), original, 'Declined current-input save preserves original');
+      window.confirm = () => true;
+      if (TEST_CASE === 'legacy-import') {
+        assert(importWorkspace(getStateForExport()), 'Copy-current/import-current workaround releases protection without currency prompt');
+      } else {
+        const storage = W.store.storage;
+        W.store.storage = {
+          getItem: key => storage.getItem(key),
+          setItem() { throw new Error('quota'); },
+        };
+        assert(!saveCurrentEntries(), 'Failed recovery-copy write prevents overwriting original');
+        assert(W.store.blocked, 'Failed save keeps overwrite protection');
+        equal(storage.getItem(NWCore.KEY), original, 'Storage failure preserves stored original');
+        W.store.storage = storage;
+        assert(saveCurrentEntries(), 'Explicit current-input save succeeds without currency selection');
+      }
+      const saved = JSON.parse(localStorage.getItem(NWCore.KEY));
+      equal(saved.money.investAsset, { USD: '1000', KRW: '1250000' }, 'Recovery preserves both input currencies without conversion');
+      assert(!W.store.blocked && !W.legacy, 'Successful save unlocks subsequent autosaving');
+      assert(document.getElementById('saveCurrentEntries').hidden, 'Recovery button hides after successful save');
+      assert([...Array(localStorage.length)].some((_, i) => {
+        const key = localStorage.key(i);
+        return key.includes(':recovery:') && localStorage.getItem(key) === original;
+      }), 'Exact previous stored copy is preserved');
+      const reloaded = new NWCore.Store(localStorage).load();
+      equal(reloaded.status, 'ok', 'Recovered profile reloads without legacy prompt');
+      equal(reloaded.state.money.investAsset, saved.money.investAsset, 'Recovered profile reloads exact native amounts');
     } else if (TEST_CASE === 'saved' || TEST_CASE === 'offline-cache') {
       near(pN('investAsset'), 1100, 'Saved mixed-currency profile loads without reinterpretation');
       assert(!document.getElementById('resultsRegion').hidden, 'Valid saved or cached rate displays results');
@@ -142,6 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       equal(accounts[1].retireDrawAge, '', 'New taxable accounts default to no withdrawal age');
 
       await runEventDateTests({ assert, equal, near, throws });
+      runEventCurrencyTests({ assert, equal, near });
 
       const s = NWCore.emptyState();
       s.fx = fx;
