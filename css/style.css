@@ -1076,6 +1076,39 @@ tbody td:nth-child(2) { text-align: left; font-family: var(--sans); font-size: 1
 :focus-visible { outline: 2px solid var(--gold) !important; outline-offset: 3px; }
 input[aria-invalid="true"] { border-color: var(--red) !important; }
 .field-error { display: block; color: var(--red); font-size: 11px; margin-top: 4px; }
+.projection-start { margin-top: 12px; }
+.projection-start input, .event-date {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  background: var(--card2);
+  color: var(--text);
+  color-scheme: dark;
+  font: inherit;
+  min-width: 0;
+}
+.event-timing-help, .event-legacy-note {
+  color: var(--text2);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 8px 0 14px;
+}
+.event-timeline { list-style: none; margin: 18px 0; padding-left: 12px; border-left: 2px solid var(--teal); }
+.event-timeline-item { position: relative; margin-bottom: 10px; }
+.event-timeline-item::before { content: ''; position: absolute; left: -17px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+.event-timeline-button {
+  display: flex; flex-direction: column; gap: 4px;
+  width: 100%; text-align: left; padding: 10px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--card); color: var(--text); cursor: pointer; font: inherit;
+  overflow-wrap: anywhere;
+}
+.event-timeline-date { color: var(--teal); font-size: 12px; }
+.event-timeline-name { font-weight: 500; }
+.event-timeline-detail { color: var(--text2); font-size: 11px; }
+.event-date-details summary { color: var(--teal); cursor: pointer; font-size: 12px; }
+.event-clear-end { padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--card2); color: var(--text2); cursor: pointer; margin-top: 6px; }
 .import-modal-overlay { z-index: 11000; padding: 12px; }
 .import-modal > * { flex-shrink: 0; }
 .import-modal-actions { flex-wrap: wrap; }
@@ -1087,6 +1120,7 @@ input[aria-invalid="true"] { border-color: var(--red) !important; }
   .workspace-bar button, .workspace-bar input, .workspace-bar select { min-height: 44px; font-size: 16px; }
   .import-modal { max-height: 85dvh; padding: 18px; }
   .import-modal input, .import-modal textarea, .import-modal select { font-size: 16px; }
+  .event-date, .projection-start input { font-size: 16px; min-height: 44px; }
   .import-modal button { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {

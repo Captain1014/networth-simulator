@@ -200,7 +200,7 @@ function buildYearlyTableText(rows, showRetireOnly) {
   const retAge = pN('retireAge');
   const ageSfx = t('summary.ageSuffix');
   const accCols = accounts.map(a => a.name || getAccTypeLabel(a.type));
-  const headers = [t('table.age'), t('table.event'), t('table.income'), t('table.expense'), t('table.savings'), t('table.investCol')]
+  const headers = [L('Year / age', '연도 / 나이'), t('table.event'), t('table.income'), t('table.expense'), t('table.savings'), t('table.investCol')]
     .concat(accCols)
     .concat([t('table.total')]);
   const line = (cells) => cells.join(' | ');
@@ -208,7 +208,7 @@ function buildYearlyTableText(rows, showRetireOnly) {
   const scenarioLabel = t('chart.' + currentSc) || currentSc;
   const lines = ['## ' + t('table.title') + ' - ' + scenarioLabel + '\n', '| ' + line(headers) + ' |', '| ' + sep + ' |'];
   for (const r of list) {
-    const evStr = r.events.length ? r.events.map(e => e.label).join(', ') : '—';
+    const evStr = r.events.length ? r.events.map(e => (e.date ? e.date + ' · ' : '') + e.label).join(', ') : '—';
     const inc = r.income != null ? fmt(r.income) : '—';
     const exp = fmt(r.expense);
     const sav = fmt(r.savings);
@@ -221,7 +221,7 @@ function buildYearlyTableText(rows, showRetireOnly) {
       const afterTax = accType.taxOnWithdraw ? snap.balance * (1 - txRate) : snap.balance;
       return fmt(afterTax);
     });
-    const ageCell = r.age + ageSfx + (r.age === retAge ? ' (' + t('table.retireTag') + ')' : '');
+    const ageCell = yearAgeLabel(r) + (r.age === retAge ? ' (' + t('table.retireTag') + ')' : '');
     const rowCells = [ageCell, evStr, inc, exp, sav, inv].concat(accCells).concat([fmt(r.totalLiquid)]);
     lines.push('| ' + line(rowCells) + ' |');
   }
@@ -765,6 +765,10 @@ function simulate(sk = 'base', returnSequence = null) {
   const mod = SC[sk];
   const startAge = pN('currentAge');
   const retireAge = pN('retireAge');
+  const schedule = eventScheduleState();
+  const scheduledEvents = [...events]
+    .sort((a, b) => NWCore.eventSortKey(a, schedule).localeCompare(NWCore.eventSortKey(b, schedule)) || a.id - b.id)
+    .map(ev => ({ ...ev, age: NWCore.eventAge(ev, schedule), endAge: NWCore.eventEndAge(ev, schedule) }));
   let invest = pN('investAsset');
   let income = pN('annualIncome');
   let expense = pN('annualExpense');
@@ -818,21 +822,21 @@ function simulate(sk = 'base', returnSequence = null) {
 
     let lumpIn = 0, lumpOut = 0;
     const evDescs = [];
-    for (const ev of events) {
+    for (const ev of scheduledEvents) {
       if (parseInt(ev.age, 10) !== age) continue;
       const val = objectMoney(ev, 'value');
-      if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.income') }); }
+      if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.income') }); }
       else if (ev.type === 'income-add') {
         extraIncomes.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
-        evDescs.push({ type: ev.type, label: ev.name || t('ev.incomeAdd') });
+        evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.incomeAdd') });
       }
-      else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, label: ev.name || t('ev.expense') }); }
+      else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.expense') }); }
       else if (ev.type === 'expense-add') {
         extraExpenses.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
-        evDescs.push({ type: ev.type, label: ev.name || t('ev.expenseAdd') });
+        evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.expenseAdd') });
       }
-      else if (ev.type === 'lumpsum-out') { lumpOut += val; evDescs.push({ type: ev.type, label: ev.name || t('ev.lumpOut') }); }
-      else if (ev.type === 'lumpsum-in') { lumpIn += val; evDescs.push({ type: ev.type, label: ev.name || t('ev.lumpIn') }); }
+      else if (ev.type === 'lumpsum-out') { lumpOut += val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.lumpOut') }); }
+      else if (ev.type === 'lumpsum-in') { lumpIn += val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.lumpIn') }); }
     }
 
     // Total expense = base expense + all active extra expenses
@@ -869,7 +873,7 @@ function simulate(sk = 'base', returnSequence = null) {
     }
 
     // 목돈 유입이 특정 계좌 해지·이전을 의미할 때: 해당 계좌 잔액을 0으로 (예: ISA 전액 해지 후 invest로 편입)
-    for (const ev of events) {
+    for (const ev of scheduledEvents) {
       if (parseInt(ev.age, 10) !== age) continue;
       if (ev.type !== 'lumpsum-in' || ev.drainAccountId == null || String(ev.drainAccountId).trim() === '') continue;
       const did = parseInt(ev.drainAccountId, 10);
@@ -883,7 +887,7 @@ function simulate(sk = 'base', returnSequence = null) {
     invest = invest * (1 + rr) + savings + lumpIn - lumpOut;
     if (isRetired && totalExpense > 0) {
       let totalAT = 0;
-      const drawable = accState.filter(ac => age >= (ac.retireDrawAge || 60));
+      const drawable = accState.filter(ac => ac.type === 'taxable' || age >= (ac.retireDrawAge || 60));
       for (const ac of drawable) {
         const t = ACC_TYPES[ac.type] || ACC_TYPES.roth;
         totalAT += t.taxOnWithdraw ? ac.balance * (1 - ac.withdrawTaxRate) : ac.balance;
@@ -933,6 +937,7 @@ function simulate(sk = 'base', returnSequence = null) {
     }
 
     rows.push({
+      year: NWCore.yearAtAge(age, schedule),
       age,
       isRetired,
       income: dispIncome,
@@ -1031,7 +1036,7 @@ function runMonteCarlo() {
     depletedCount: depletedCount,
     pathsIdentical: pathsIdentical,
     p10, p50, p90,
-    labels: paths[0].map(function (r) { return r.age + ageSfx; }),
+    labels: paths[0].map(yearAgeLabel),
   };
   return mcResult;
 }
@@ -1111,7 +1116,7 @@ function renderChart(rows) {
     return;
   }
   const ageSfx = t('summary.ageSuffix');
-  const labels = rows.map(r => r.age + ageSfx);
+  const labels = rows.map(yearAgeLabel);
   const totalD = rows.map(r => displayAmount(r.totalLiquid));
   const investD = rows.map(r => r.invest >= 0 ? displayAmount(r.invest) : null);
   const accD = rows.map(r => displayAmount(r.totalAccAfterTax));
@@ -1207,7 +1212,7 @@ function renderTable(rows) {
   const hsCols = hsMode ? housingResult.scenarios : [];
 
   head.innerHTML = `<tr>
-    <th>${t('table.age')}</th><th>${t('table.event')}</th>
+    <th>${L('Year / age', '연도 / 나이')}</th><th>${t('table.event')}</th>
     <th>${t('table.income')}</th><th>${t('table.expense')}</th><th>${t('table.savings')}</th>
     <th title="${investColTitle.replace(/"/g, '&quot;')}">${t('table.investCol')}</th>
     ${accCols.map(n => `<th>${escapeHTML(n)}</th>`).join('')}
@@ -1221,10 +1226,10 @@ function renderTable(rows) {
     const tr = document.createElement('tr');
     if (r.age === retAge) tr.classList.add('hl');
 
-    let ageCell = r.age + ageSfx;
+    let ageCell = yearAgeLabel(r);
     if (r.age === retAge) ageCell += '<span class="retire-tag">' + t('table.retireTag') + '</span>';
 
-    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${escapeHTML(e.type)}">${escapeHTML(e.label)}</span>`).join('') : '<span style="color:var(--text3)">—</span>';
+    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${escapeHTML(e.type)}">${e.date ? escapeHTML(formatEventDate(e.date)) + ' · ' : ''}${escapeHTML(e.label)}</span>`).join('') : '<span style="color:var(--text3)">—</span>';
     const evCell = `<div class="ev-cell-inner">${evContent}</div>`;
     const inc = r.income != null ? fmt(r.income) : '<span style="color:var(--text3)">—</span>';
     const exp = fmt(r.expense);
@@ -1317,6 +1322,7 @@ function render4pct(rows) {
 // RENDER ALL
 // ═══════════════════════════════════════════════════
 function renderAll() {
+  renderEventTimeline();
   if (!prepareRender()) { saveState(); return; }
   const rows = simulate(currentSc);
   if (chartMode === 'housing' && housingScenarios.length > 0) {
@@ -1419,7 +1425,7 @@ function addAccount(opts = {}) {
     contribStartAge: opts.contribStartAge ?? '',
     contribEndAge: opts.contribEndAge ?? '',
     withdrawTaxRate: opts.withdrawTaxRate || '0',
-    retireDrawAge: opts.retireDrawAge || '60',
+    retireDrawAge: opts.retireDrawAge ?? (opts.type === 'taxable' ? '' : '60'),
   });
   renderAccountList();
   renderAll();
@@ -1437,6 +1443,7 @@ function updateAccount(id, field, value) {
   const a = accounts.find(x => x.id === id);
   if (!a) return;
   a[field] = value;
+  if (field === 'type' && value !== 'taxable' && !a.retireDrawAge) a.retireDrawAge = '60';
   if (field === 'name') {
     const nameEl = document.querySelector('#ac-' + id + ' .acc-name');
     if (nameEl) nameEl.textContent = value || getAccTypeLabel(a.type);
@@ -1545,11 +1552,11 @@ function renderAccountList() {
             <div class="iw"><input class="acc-num" type="number" value="${a.contribEndAge ?? ''}" placeholder="${t('acc.contribEndPlaceholder')}" min="1" max="99" oninput="updateAccount(${a.id},'contribEndAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
         </div>
-        <div class="row2">
+        ${a.type === 'taxable' ? `<p class="taxable-withdrawal-note" style="font-size:12px;color:var(--text2);margin:8px 0">${L('Available at any age — no withdrawal-age restriction.', '인출 나이 제한 없이 사용할 수 있습니다.')}</p>` : `<div class="row2">
           <div class="field"><label>${t('acc.drawAge')}</label>
             <div class="iw"><input class="acc-num" type="number" value="${a.retireDrawAge}" placeholder="60" oninput="updateAccount(${a.id},'retireDrawAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
           </div>
-        </div>
+        </div>`}
         <div class="row2">
           <div class="field"><label>${t('acc.withdrawTax')}</label>
             <div class="iw"><input class="acc-num" type="text" value="${a.withdrawTaxRate}" placeholder="0" oninput="updateAccount(${a.id},'withdrawTaxRate',this.value)"><span class="sfx">%</span></div>
@@ -1573,10 +1580,13 @@ function addEvent(opts = {}) {
     currency: opts.currency || 'USD',
     type: opts.type || 'income',
     name: opts.name || '',
-    age: opts.age || (pN('currentAge') + 5),
-    value: opts.value || '',
+    value: opts.value ?? '',
   };
+  if (opts.date) ev.date = opts.date;
+  else if (opts.age != null) ev.age = opts.age;
+  else ev.date = NWCore.shiftYears(W.state.projectionStartDate, 5);
   if (opts.endAge) ev.endAge = opts.endAge;
+  if (opts.endDate) ev.endDate = opts.endDate;
   events.unshift(ev);
   renderEventList();
   renderAll();
@@ -1593,13 +1603,12 @@ function updateEvent(id, field, value) {
   const ev = events.find(e => e.id === id);
   if (!ev) return;
   ev[field] = value;
+  if (field === 'date' && value) delete ev.age;
+  if (field === 'endDate') delete ev.endAge;
   if (field === 'name') {
     const lbl = document.querySelector('#ev-' + id + ' .ev-lbl');
     if (lbl) lbl.textContent = value || t('ev.noName');
-  } else if (field === 'age') {
-    const tag = document.querySelector('#ev-' + id + ' .ev-age-tag');
-    if (tag) tag.textContent = value + t('ageSfx');
-  } else if (['type', 'currency'].includes(field)) {
+  } else if (['type', 'currency', 'date', 'endDate'].includes(field)) {
     renderEventList();
   }
   renderAll();
@@ -1626,7 +1635,11 @@ function renderEventList() {
     'lumpsum-out': ['ebadge-lumpsum-out', 'evBadge.lumpsum-out'],
     'lumpsum-in': ['ebadge-lumpsum-in', 'evBadge.lumpsum-in'],
   };
-  const sorted = [...events].sort((a, b) => parseInt(a.age) - parseInt(b.age));
+  const sorted = [...events];
+  try {
+    const schedule = eventScheduleState();
+    sorted.sort((a, b) => NWCore.eventSortKey(a, schedule).localeCompare(NWCore.eventSortKey(b, schedule)) || a.id - b.id);
+  } catch (_) {}
   for (const raw of sorted) {
     const ev = safeRecord(raw);
     const [bc, blKey] = BADGES[ev.type] || ['ebadge-income', 'evBadge.default'];
@@ -1640,7 +1653,7 @@ function renderEventList() {
       <div class="ev-head" onclick="toggleEv(${ev.id})">
         <span class="ev-badge ${bc}">${bl}</span>
         <span class="ev-lbl">${ev.name || t('ev.noName')}</span>
-        <span class="ev-age-tag">${ev.age}${t('ageSfx')}</span>
+        <span class="ev-age-tag">${escapeHTML(eventWhenLabel(raw))}</span>
         <span class="ev-tog">▼</span>
       </div>
       <div class="ev-body">
@@ -1659,17 +1672,13 @@ function renderEventList() {
           <input class="acc-inp" type="text" placeholder="${t('ev.placeholderName')}" value="${ev.name}" oninput="updateEvent(${ev.id},'name',this.value)">
         </div>
         <div class="row2">
-          <div class="field"><label>${t('ev.age')}</label>
-            <div class="iw"><input class="acc-num" type="number" value="${ev.age}" min="1" max="99" onchange="updateEvent(${ev.id},'age',parseInt(this.value))"><span class="sfx">${t('ageSfx')}</span></div>
-          </div>
+          ${eventDateEditor(raw)}
           <div class="field"><label>${t('ev.amount')}</label>
             <div class="iw"><input id="ev-value-${ev.id}" class="acc-num" type="text" value="${ev.value}" placeholder="${t('ev.placeholderAmount')}" oninput="updateEvent(${ev.id},'value',this.value)"><span class="sfx">${sfx}</span></div>
           </div>
         </div>
         ${ev.type === 'expense-add' || ev.type === 'income-add' ? `<div class="row2">
-          <div class="field"><label>${t('ev.endAge')}</label>
-            <div class="iw"><input class="acc-num" type="number" value="${ev.endAge || ''}" min="1" max="100" placeholder="${t('ev.endAgePlaceholder')}" onchange="updateEvent(${ev.id},'endAge',this.value)"><span class="sfx">${t('ageSfx')}</span></div>
-          </div>
+          ${eventEndDateEditor(raw)}
           <div class="field"></div>
         </div>` : ''}
         <div class="acc-foot"><button class="btn-del" onclick="removeEvent(${ev.id})">${t('ev.delete')}</button></div>
@@ -1958,7 +1967,7 @@ function simulateHousing() {
       }
 
       const netWorth = baseNW + investDelta + propertyValue - loanBalance;
-      rows.push({ age, netWorth, propertyValue, loanBalance, depositHeld, cumulativeCost });
+      rows.push({ age, year: baseRows[i].year, netWorth, propertyValue, loanBalance, depositHeld, cumulativeCost });
     }
 
     results.push({ id: hs.id, name: hs.name || t('housing.scenario') + ' ' + String.fromCharCode(65 + results.length), type: hs.type, rows });
@@ -2006,7 +2015,7 @@ function renderChartHousing(data) {
   }
   const ctx = document.getElementById('mainChart').getContext('2d');
   const ageSfx = t('summary.ageSuffix');
-  const labels = data.scenarios[0].rows.map(r => r.age + ageSfx);
+  const labels = data.scenarios[0].rows.map(yearAgeLabel);
 
   const datasets = data.scenarios.map((sc, i) => ({
     label: sc.name,

@@ -25,6 +25,7 @@ css/style.css       # Styles
 js/app.js           # Simulation and visualizations
 js/core.js          # Validation, migration, storage, and FX helpers
 js/workspace.js     # Persistence, recovery, currency entry, and accessible UI
+js/events.js        # Calendar-date editors and chronological life-event timeline
 tests/              # Isolated headless Chrome regression tests
 docs/               # Design notes and guides
 ```
@@ -45,6 +46,16 @@ Open `index.html` (or `eng/index.html` for English) in any browser. No build ste
 - Use **Create Backup → Download encrypted file** and **Restore Backup → Choose encrypted backup file** to transfer data. Keep the password separately. Existing long backup tokens remain supported. Short relay codes expire after 48 hours and are not permanent backups.
 - Recovery controls can restore the previous valid snapshot or download the stored original. Recovery JSON and clipboard exports are unencrypted; keep them private and out of Git.
 - Changes in another tab pause saving to avoid silently overwriting that tab's data. Export any edits before reloading.
+
+## Life-event dates
+
+Set the projection start date beside your current age. New life events use an exact date (and an optional exclusive end date for recurring additions). The timeline is chronological; selecting an item opens its editor. Graphs and yearly rows show calendar year alongside modeled age.
+
+Financial calculations are still annual, not daily or monthly. An event affects its calendar-year bucket. Recurring additional income/expenses use the full annual amount in each overlapping year, without proration; an end date on January 1 excludes that year. Events before the projection start remain visible as history but are not reapplied to current balances. Events beyond the age-100 horizon remain visible without affecting the forecast.
+
+Existing age-based events keep their original start/end timing and display an approximate year. Their exact date is left blank until explicitly selected. Existing end-age timing is retained until an end date is chosen or **No end date** is selected. Exact dates and the projection anchor are included in saved data and backups.
+
+Taxable accounts have no withdrawal-age restriction in the simulator. Their age field is omitted, and a previously saved withdrawal age does not block access to those funds. Retirement-account withdrawal settings are unchanged.
 
 ## Tests
 

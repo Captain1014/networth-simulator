@@ -38,6 +38,41 @@
     if (!Number.isFinite(n) || n < min || n > max) throw new Error('range');
     return n;
   }
+  function today() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function date(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number(value.slice(0, 4)) < 1900) throw new Error('date');
+    const time = Date.parse(value + 'T00:00:00Z');
+    if (!Number.isFinite(time) || new Date(time).toISOString().slice(0, 10) !== value) throw new Error('date');
+    return value;
+  }
+  function shiftYears(value, years) {
+    date(value);
+    const [year, month, day] = value.split('-').map(Number);
+    const lastDay = new Date(Date.UTC(year + years, month, 0)).getUTCDate();
+    return date(`${year + years}-${String(month).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`);
+  }
+  function yearAtAge(value, state) {
+    return Number(date(state.projectionStartDate).slice(0, 4)) + Number(value) - Number(state.inputs.currentAge);
+  }
+  function eventAge(event, state) {
+    if (!event.date) return Number(event.age);
+    const value = date(event.date);
+    const currentAge = Number(state.inputs.currentAge);
+    const derived = currentAge + Number(value.slice(0, 4)) - Number(date(state.projectionStartDate).slice(0, 4));
+    return value < state.projectionStartDate ? Math.min(currentAge - 1, derived) : derived;
+  }
+  function eventEndAge(event, state) {
+    if (!event.endDate) return Number(event.endAge) || 0;
+    const value = date(event.endDate);
+    return Number(state.inputs.currentAge) + Number(value.slice(0, 4)) -
+      Number(date(state.projectionStartDate).slice(0, 4)) + (value.slice(5) === '01-01' ? 0 : 1);
+  }
+  function eventSortKey(event, state) {
+    return event.date || `${yearAtAge(event.age, state)}-01-01`;
+  }
   function text(v) {
     if (typeof v !== 'string' || v.length > 500) throw new Error('text');
     return v;
@@ -87,6 +122,7 @@
   function emptyState() {
     return {
       schemaVersion: VERSION, profileId: crypto.randomUUID(), updatedAt: '',
+      projectionStartDate: today(),
       inputs: { ...DEFAULT_INPUTS },
       money: Object.fromEntries(MONEY_IDS.map(k => [k, { USD: '', KRW: '' }])),
       accounts: [], events: [], housingScenarios: [], currentSc: 'base',
@@ -99,6 +135,7 @@
     s.profileId = text(raw.profileId);
     if (!s.profileId) throw new Error('profile');
     s.updatedAt = text(raw.updatedAt ?? '');
+    s.projectionStartDate = date(raw.projectionStartDate ?? today());
     for (const [k, fallback] of Object.entries(DEFAULT_INPUTS)) {
       const v = own(raw.inputs, k) ? raw.inputs[k] : fallback;
       if (k.endsWith('Age')) age(v);
@@ -126,7 +163,7 @@
       out.withdrawTaxRate = rate(x.withdrawTaxRate, 0, 99.99);
       out.employerMatchMode = choice(x.employerMatchMode, ['fixed', 'percent', 'match']);
       for (const k of ['contribStartAge', 'contribEndAge']) out[k] = String(age(x[k], true));
-      out.retireDrawAge = String(age(x.retireDrawAge));
+      out.retireDrawAge = String(age(x.retireDrawAge, x.type === 'taxable'));
       if (x.contribStartAge !== '' && x.contribEndAge !== '' && Number(x.contribEndAge) < Number(x.contribStartAge)) throw new Error('contribution-age');
       return out;
     });
@@ -135,13 +172,21 @@
       const x = {
         id: id(e.id), currency: currency(e.currency), name: text(e.name ?? ''),
         type: choice(e.type, ['income', 'income-add', 'expense', 'expense-add', 'lumpsum-out', 'lumpsum-in']),
-        age: age(e.age), value: String(e.value ?? ''),
+        value: String(e.value ?? ''),
       };
+      if (e.date != null && e.date !== '') x.date = date(e.date);
+      else x.age = age(e.age);
       number(x.value);
       if (e.endAge != null && e.endAge !== '') {
         x.endAge = age(e.endAge);
-        if (x.endAge <= x.age) throw new Error('event-end');
       }
+      if (e.endDate != null && e.endDate !== '') {
+        x.endDate = date(e.endDate);
+        const start = x.date || eventSortKey(x, s);
+        if (x.endDate <= start) throw new Error('event-end');
+      }
+      const end = eventEndAge(x, s);
+      if (end && end <= eventAge(x, s)) throw new Error('event-end');
       if (e.drainAccountId != null && e.drainAccountId !== '') {
         x.drainAccountId = id(Number(e.drainAccountId));
         if (!s.accounts.some(a => a.id === x.drainAccountId)) throw new Error('account-reference');
@@ -249,5 +294,5 @@
       return cleanFx({ ...await response.json(), source: 'Frankfurter', fetchedAt: new Date().toISOString() });
     } finally { clearTimeout(timeout); }
   }
-  window.NWCore = { VERSION, KEY, MONEY_IDS, DEFAULT_INPUTS, HOUSING_MONEY, emptyState, validate, migrate, number, validFx, cleanFx, toUSD, fromUSD, Store, fetchRate };
+  window.NWCore = { VERSION, KEY, MONEY_IDS, DEFAULT_INPUTS, HOUSING_MONEY, emptyState, validate, migrate, number, validFx, cleanFx, toUSD, fromUSD, Store, fetchRate, today, date, shiftYears, yearAtAge, eventAge, eventEndAge, eventSortKey };
 })();

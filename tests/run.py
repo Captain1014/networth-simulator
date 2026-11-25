@@ -76,7 +76,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             </script>"""
             html = re.sub(r'(<script src="[^"]*js/workspace\.js(?:\?[^"]*)?"></script>)',
                           lambda match: setup + match.group(0), html)
-            html = html.replace("</body>", '<script src="/tests/integration.js"></script></body>')
+            html = html.replace("</body>", '<script src="/tests/event-dates.js"></script><script src="/tests/integration.js"></script></body>')
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()

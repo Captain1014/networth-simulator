@@ -102,6 +102,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       throws(() => brokenStore.save(state), 'Corrupt original cannot be autosaved over');
       equal(broken.getItem(NWCore.KEY), '{bad', 'Corrupt bytes preserved');
 
+      const taxableState = NWCore.emptyState();
+      taxableState.fx = fx;
+      Object.assign(taxableState.inputs, {
+        currentAge: '35', retireAge: '35', returnRate: '0', inflation: '0', wageGrowthRate: '0',
+      });
+      taxableState.money.annualExpense.USD = '100';
+      taxableState.accounts = [{
+        id: 1, currency: 'USD', type: 'taxable', name: 'Brokerage',
+        balance: '1000', rate: '0', retireDrawAge: '',
+      }];
+      applyWorkspaceState(taxableState);
+      renderAll();
+      assert(!document.querySelector('#ac-1 input[oninput*="retireDrawAge"]'), 'Taxable accounts do not show withdrawal age');
+      assert(document.querySelector('#ac-1 .taxable-withdrawal-note'), 'Taxable accounts explain unrestricted access');
+      assert(document.querySelector('#ac-1 input[oninput*="balance"]') && document.querySelector('#ac-1 input[oninput*="contribSelf"]'), 'Taxable balance and contribution fields remain editable');
+      near(simulate()[0].accSnapshot[0].balance, 900, 'Taxable funds cover retirement spending before age 60');
+      flushStateSave();
+      equal(JSON.parse(localStorage.getItem(NWCore.KEY)).accounts[0].retireDrawAge, '', 'Blank taxable age can be saved');
+      const taxableStore = new NWCore.Store(localStorage);
+      const taxableReload = taxableStore.load();
+      assert(taxableReload.status === 'ok', 'Blank taxable age can be reloaded');
+      applyWorkspaceState(taxableReload.state);
+      near(simulate()[0].accSnapshot[0].balance, 900, 'Reloaded taxable account remains accessible');
+      accounts[0].retireDrawAge = '90';
+      renderAll();
+      near(simulate()[0].accSnapshot[0].balance, 900, 'Legacy withdrawal age is ignored for taxable accounts');
+      accounts[0].retireDrawAge = '';
+      updateAccount(1, 'type', 'roth');
+      equal(accounts[0].retireDrawAge, '60', 'Switching to retirement account restores an editable default age');
+      assert(document.querySelector('#ac-1 input[oninput*="retireDrawAge"]'), 'Retirement accounts keep withdrawal-age input');
+      near(simulate()[0].accSnapshot[0].balance, 1000, 'Retirement account remains restricted before its chosen age');
+      const invalidRetirementAge = getStateForExport();
+      invalidRetirementAge.accounts[0].retireDrawAge = '';
+      throws(() => NWCore.validate(invalidRetirementAge), 'Retirement accounts still validate the withdrawal age');
+      updateAccount(1, 'type', 'taxable');
+      near(simulate()[0].accSnapshot[0].balance, 900, 'Switching back to taxable removes age restriction');
+      addAccount({ type: 'taxable' });
+      equal(accounts[1].retireDrawAge, '', 'New taxable accounts default to no withdrawal age');
+
+      await runEventDateTests({ assert, equal, near, throws });
+
       const s = NWCore.emptyState();
       s.fx = fx;
       s.inputs.returnRate = '0'; s.inputs.inflation = '0'; s.inputs.wageGrowthRate = '0';
