@@ -770,8 +770,14 @@ function simulate(sk = 'base', returnSequence = null) {
     .sort((a, b) => NWCore.eventSortKey(a, schedule).localeCompare(NWCore.eventSortKey(b, schedule)) || a.id - b.id)
     .map(ev => ({ ...ev, age: NWCore.eventAge(ev, schedule), endAge: NWCore.eventEndAge(ev, schedule) }));
   let invest = pN('investAsset');
-  let income = pN('annualIncome');
-  let expense = pN('annualExpense');
+  const income = {
+    USD: NWCore.toUSD(document.getElementById('annualIncome').value, 'USD', W.state.fx),
+    KRW: NWCore.toUSD(document.getElementById('annualIncome_KRW').value, 'KRW', W.state.fx),
+  };
+  const expense = {
+    USD: NWCore.toUSD(document.getElementById('annualExpense').value, 'USD', W.state.fx),
+    KRW: NWCore.toUSD(document.getElementById('annualExpense_KRW').value, 'KRW', W.state.fx),
+  };
   const rrBase = pR('returnRate') + mod.r / 100;
   const inf = pR('inflation');
   const wageGrowth = pR('wageGrowthRate');
@@ -825,12 +831,12 @@ function simulate(sk = 'base', returnSequence = null) {
     for (const ev of scheduledEvents) {
       if (parseInt(ev.age, 10) !== age) continue;
       const val = objectMoney(ev, 'value');
-      if (ev.type === 'income') { income = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.income') }); }
+      if (ev.type === 'income') { income[ev.currency] = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.income') }); }
       else if (ev.type === 'income-add') {
         extraIncomes.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
         evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.incomeAdd') });
       }
-      else if (ev.type === 'expense') { expense = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.expense') }); }
+      else if (ev.type === 'expense') { expense[ev.currency] = val; evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.expense') }); }
       else if (ev.type === 'expense-add') {
         extraExpenses.push({ id: ev.id, current: val, endAge: parseInt(ev.endAge) || 0 });
         evDescs.push({ type: ev.type, date: ev.date || '', label: ev.name || t('ev.expenseAdd') });
@@ -840,8 +846,8 @@ function simulate(sk = 'base', returnSequence = null) {
     }
 
     // Total expense = base expense + all active extra expenses
-    const totalExpense = expense + extraExpenses.reduce((s, x) => s + x.current, 0);
-    const totalIncome = income + extraIncomes.reduce((s, x) => s + x.current, 0);
+    const totalExpense = expense.USD + expense.KRW + extraExpenses.reduce((s, x) => s + x.current, 0);
+    const totalIncome = income.USD + income.KRW + extraIncomes.reduce((s, x) => s + x.current, 0);
 
     const mPayment = mortgage > 0 ? (mRate === 0 ? mortgage / Math.max(1, 30 - (age - startAge)) : mortgage * mRate / (1 - Math.pow(1 + mRate, -Math.max(1, 30 - (age - startAge))))) : 0;
     const slPayment = studentLoan > 0 ? (slRate === 0 ? studentLoan / Math.max(1, 10 - (age - startAge)) : studentLoan * slRate / (1 - Math.pow(1 + slRate, -Math.max(1, 10 - (age - startAge))))) : 0;
@@ -929,10 +935,10 @@ function simulate(sk = 'base', returnSequence = null) {
     const dispSavings = isRetired ? -totalExpense : savings;
 
     // Inflate base expense and each extra expense independently
-    expense = expense * (1 + inf);
+    for (const c of ['USD', 'KRW']) expense[c] *= 1 + inf;
     for (const x of extraExpenses) x.current = x.current * (1 + inf);
     if (!isRetired) {
-      income = income * (1 + wageGrowth);
+      for (const c of ['USD', 'KRW']) income[c] *= 1 + wageGrowth;
       for (const x of extraIncomes) x.current = x.current * (1 + wageGrowth);
     }
 
@@ -1229,7 +1235,7 @@ function renderTable(rows) {
     let ageCell = yearAgeLabel(r);
     if (r.age === retAge) ageCell += '<span class="retire-tag">' + t('table.retireTag') + '</span>';
 
-    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${escapeHTML(e.type)}">${e.date ? escapeHTML(formatEventDate(e.date)) + ' · ' : ''}${escapeHTML(e.label)}</span>`).join('') : '<span style="color:var(--text3)">—</span>';
+    const evContent = r.events.length ? r.events.map(e => `<span class="edot edot-${escapeHTML(e.type)}">${e.date ? escapeHTML(formatEventDate(e.date)) + ' · ' : ''}${escapeHTML(e.label)}</span>`).join(' ') : '<span style="color:var(--text3)">—</span>';
     const evCell = `<div class="ev-cell-inner">${evContent}</div>`;
     const inc = r.income != null ? fmt(r.income) : '<span style="color:var(--text3)">—</span>';
     const exp = fmt(r.expense);
@@ -1658,6 +1664,9 @@ function renderEventList() {
       </div>
       <div class="ev-body">
         ${currencySelect(ev.currency, `updateEvent(${ev.id},'currency',this.value)`)}
+        ${ev.type === 'income' || ev.type === 'expense' ? `<p class="event-currency-scope">${L(
+          `Changes only base annual ${ev.type === 'income' ? 'income' : 'expenses'} in ${ev.currency}. The other currency is unchanged.`,
+          `${ev.currency}로 입력한 기본 연간 ${ev.type === 'income' ? '수입' : '지출'}만 변경합니다. 다른 통화의 금액은 유지됩니다.`)}</p>` : ''}
         <div class="field"><label>${t('ev.kind')}</label>
           <select class="acc-sel" onchange="updateEvent(${ev.id},'type',this.value)">
             <option value="income" ${ev.type === 'income' ? 'selected' : ''}>${t('ev.income')}</option>

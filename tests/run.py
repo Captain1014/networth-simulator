@@ -46,7 +46,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
               localStorage.clear();
               window.TEST_CASE = __CASE__;
               if (TEST_CASE === 'corrupt') localStorage.setItem('networth-simulator-state', '{broken');
-              if (TEST_CASE === 'legacy') localStorage.setItem('networth-simulator-state', JSON.stringify({
+              if (TEST_CASE.startsWith('legacy')) localStorage.setItem('networth-simulator-state', JSON.stringify({
                 inputs: { investAsset: '15000000', currentAge: '30', retireAge: '55' },
                 accounts: [], events: [], currentSc: 'base', showRetireOnly: false
               }));
@@ -76,7 +76,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             </script>"""
             html = re.sub(r'(<script src="[^"]*js/workspace\.js(?:\?[^"]*)?"></script>)',
                           lambda match: setup + match.group(0), html)
-            html = html.replace("</body>", '<script src="/tests/event-dates.js"></script><script src="/tests/integration.js"></script></body>')
+            html = html.replace("</body>", '<script src="/tests/event-dates.js"></script><script src="/tests/event-currencies.js"></script><script src="/tests/integration.js"></script></body>')
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
@@ -111,6 +111,8 @@ def main():
             ("/eng/", "corrupt", "1280,900"), ("/eng/", "legacy", "1280,900"),
             ("/eng/", "saved", "1280,900"), ("/eng/", "offline-cache", "1280,900"),
             ("/eng/", "offline-empty", "390,844"), ("/eng/", "offline-bad-cache", "1280,900"),
+            ("/eng/", "legacy-edited", "1280,900"), ("/ko/", "legacy-edited", "390,844"),
+            ("/eng/", "legacy-import", "1280,900"),
         ]:
             with tempfile.TemporaryDirectory(prefix="networth-test-") as profile:
                 url = f"http://127.0.0.1:{server.server_port}{page}?case={case}"

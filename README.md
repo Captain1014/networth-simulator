@@ -42,7 +42,7 @@ Open `index.html` (or `eng/index.html` for English) in any browser. No build ste
 - USD/KRW reference rates come from [Frankfurter](https://frankfurter.dev/). The UI shows the reference date and fetch time. These are not live trading quotes or bank conversion prices. Long-term projections hold the selected exchange rate constant.
 - Rates are checked on entry, on returning to the tab, and hourly while visible, with a one-hour freshness window. Offline, the last valid rate is used with a warning; rates over four days old are flagged. Without a rate, cross-currency results pause, while raw inputs and encrypted backup remain available. A manual rate can be entered for offline use.
 - Autosave belongs to this browser profile and does not synchronize across devices. Local saves are not encrypted. Save failures are shown; invalid or unreadable stored data is not automatically replaced with examples.
-- Older saves lack currency metadata. Confirm their original currency before migration; do not infer it from the page language. The stored original is preserved for recovery.
+- Older saves lack currency metadata. Reviewing and migrating that separate copy is optional; preview its amounts before choosing the original currency. If you have entered new USD/KRW values, **Save current entries** preserves those values and archives the stored original without a currency prompt. Calculations remain available while overwrite protection is active.
 - Use **Create Backup → Download encrypted file** and **Restore Backup → Choose encrypted backup file** to transfer data. Keep the password separately. Existing long backup tokens remain supported. Short relay codes expire after 48 hours and are not permanent backups.
 - Recovery controls can restore the previous valid snapshot or download the stored original. Recovery JSON and clipboard exports are unencrypted; keep them private and out of Git.
 - Changes in another tab pause saving to avoid silently overwriting that tab's data. Export any edits before reloading.
@@ -50,6 +50,8 @@ Open `index.html` (or `eng/index.html` for English) in any browser. No build ste
 ## Life-event dates
 
 Set the projection start date beside your current age. New life events use an exact date (and an optional exclusive end date for recurring additions). The timeline is chronological; selecting an item opens its editor. Graphs and yearly rows show calendar year alongside modeled age.
+
+Income/expense change events replace only the base amount in the event's selected currency. Setting KRW income to zero does not clear USD income, and vice versa. Wage growth and inflation continue independently on the remaining currency streams. Additional recurring events stay additive. Same-date changes in different currencies are independent of insertion order; multiple changes in the same currency follow date/ID order.
 
 Financial calculations are still annual, not daily or monthly. An event affects its calendar-year bucket. Recurring additional income/expenses use the full annual amount in each overlapping year, without proration; an end date on January 1 excludes that year. Events before the projection start remain visible as history but are not reapplied to current balances. Events beyond the age-100 horizon remain visible without affecting the forecast.
 

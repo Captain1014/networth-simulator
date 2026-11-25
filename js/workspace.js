@@ -9,6 +9,35 @@ function L(en, ko) { return LOCALE === 'ko' ? ko : en; }
 function escapeHTML(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+function saveCurrentEntries() {
+  try {
+    const state = captureState();
+    if (!window.confirm(L(
+      'Save the USD/KRW amounts currently shown on this screen? They will not be converted or replaced by the previous copy. The stored original will be kept separately for recovery.',
+      '지금 화면에 입력한 USD/KRW 금액을 저장할까요? 통화를 변환하거나 이전 저장본으로 교체하지 않습니다. 기존 저장 원본은 복구용으로 별도 보존합니다.'))) return false;
+    if (W.store.storage.getItem(NWCore.KEY) !== W.store.raw) throw new Error('conflict');
+    W.store.preserve();
+    const wasBlocked = W.store.blocked;
+    W.store.blocked = false;
+    state.updatedAt = new Date().toISOString();
+    try { W.store.save(state); }
+    catch (error) { W.store.blocked = wasBlocked; throw error; }
+    W.state = state;
+    W.legacy = null;
+    W.pending = false;
+    clearTimeout(saveTimeout);
+    document.getElementById('saveCurrentEntries').hidden = true;
+    document.getElementById('migrateLegacy').hidden = true;
+    renderAll();
+    flushStateSave();
+    return true;
+  } catch (error) {
+    setNotice(error.message === 'conflict'
+      ? L('Another tab changed the stored copy. Your current entries are still on screen; export them before reloading.', '다른 탭에서 저장본을 변경했습니다. 현재 입력은 화면에 남아 있으니 새로고침 전에 백업하세요.')
+      : L('Could not save. Your entries are still on screen and the stored original was not replaced. Check the inputs or download an encrypted backup.', '저장하지 못했습니다. 입력값은 화면에 남아 있고 기존 저장본은 교체되지 않았습니다. 입력을 확인하거나 암호화 백업을 다운로드하세요.'));
+    return false;
+  }
+}
 function safeRecord(record) {
   return Object.fromEntries(Object.entries(record).map(([k, v]) => [k, typeof v === 'string' ? escapeHTML(v) : v]));
 }
@@ -105,10 +134,26 @@ function applyWorkspaceState(state) {
   enhanceAccessibility();
   updateFxStatus();
 }
-function confirmLegacyCurrency() {
+function confirmLegacyCurrency(raw) {
+  const lines = [];
+  for (const id of NWCore.MONEY_IDS) {
+    const value = raw?.inputs?.[id];
+    if (value != null && String(value).trim() !== '' && String(value) !== '0') {
+      lines.push(`${t('label.' + id)}: ${String(value).slice(0, 80)}`);
+    }
+  }
+  for (const account of (Array.isArray(raw?.accounts) ? raw.accounts : []).slice(0, 20)) {
+    lines.push(`${String(account.name || L('Account', '계좌')).slice(0, 80)}: ${String(account.balance ?? '').slice(0, 80)}`);
+  }
+  if (!window.confirm(L(
+    'Review this previous copy before choosing its currency. It is NOT the current USD/KRW entries on your screen.\n\n',
+    '통화를 선택하기 전에 이 저장본의 내용을 확인하세요. 지금 화면의 USD/KRW 입력과는 별개인 데이터입니다.\n\n') +
+    (lines.join('\n') || L('No monetary values listed.', '표시할 금액이 없습니다.')) + '\n\n' +
+    L('Continue only if you want to load this copy instead of your current entries. Cancel changes nothing.',
+      '현재 입력 대신 이 저장본을 불러오려는 경우에만 계속하세요. 취소하면 아무것도 변경되지 않습니다.'))) return null;
   const answer = window.prompt(L(
-    'This older save has no currency information. Which currency were ALL amounts entered in? Type USD or KRW. Cancel leaves the original untouched.',
-    '이전 데이터에는 통화 정보가 없습니다. 모든 금액을 입력했던 통화 USD 또는 KRW를 입력하세요. 취소하면 원본을 유지합니다.'));
+    'For the copy you just reviewed: were its amounts entered in USD or KRW? Cancel if currencies were mixed or you are unsure.',
+    '방금 확인한 저장본의 금액을 USD와 KRW 중 어떤 통화로 입력했나요? 혼합 입력했거나 모르시면 취소하세요.'));
   if (answer == null) return null;
   const c = answer.trim().toUpperCase();
   if (!['USD', 'KRW'].includes(c)) throw new Error('currency');
@@ -117,7 +162,7 @@ function confirmLegacyCurrency() {
 function normalizedImport(raw) {
   if (raw?.schemaVersion === NWCore.VERSION) return NWCore.validate(raw);
   if (!raw || raw.schemaVersion != null || typeof raw.inputs !== 'object' || raw.inputs === null) throw new Error('schema');
-  const c = confirmLegacyCurrency();
+  const c = confirmLegacyCurrency(raw);
   return c ? NWCore.migrate(raw, c) : null;
 }
 function importWorkspace(raw) {
@@ -133,6 +178,7 @@ function importWorkspace(raw) {
   applyWorkspaceState(state);
   W.legacy = null;
   document.getElementById('migrateLegacy').hidden = true;
+  document.getElementById('saveCurrentEntries').hidden = true;
   setNotice('');
   renderAll();
   W.pending = true;
@@ -229,7 +275,6 @@ function pauseResults(message) {
 }
 function prepareRender() {
   if (!W.ready) return false;
-  if (W.store.blocked && W.legacy) { pauseResults(L('Confirm the old data currency to continue.', '기존 데이터의 통화를 확인하면 계속할 수 있습니다.')); return false; }
   try {
     const state = captureState();
     const fingerprint = JSON.stringify({ projectionStartDate: state.projectionStartDate, inputs: state.inputs, money: state.money, accounts: state.accounts, events: state.events, housingScenarios: state.housingScenarios, fx: state.fx, currentSc });
@@ -247,7 +292,9 @@ function prepareRender() {
     if (state.displayCurrency === 'KRW' && !NWCore.validFx(state.fx)) throw new Error('fx-required');
     document.getElementById('resultsRegion').hidden = false;
     document.getElementById('fireBox').hidden = false;
-    if (!W.store.blocked) setNotice('');
+    setNotice(W.store.blocked ? L(
+      'The chart and table use your current entries. Automatic saving is paused to protect a separate stored copy. Use “Save current entries” to keep these USD/KRW values, or export them before closing.',
+      '그래프와 테이블은 지금 입력한 값으로 계산합니다. 별도의 기존 저장본을 보호하기 위해 자동 저장만 멈춰 있습니다. 「현재 입력 저장」으로 지금의 USD/KRW 값을 저장하거나, 닫기 전에 백업하세요.') : '');
     return true;
   } catch (error) {
     pauseResults(error.message === 'fx-required'
@@ -379,7 +426,8 @@ function setupWorkspace() {
       <button type="button" id="downloadRecovery">${L('Download stored original (unencrypted)', '저장 원본 다운로드 (비암호화)')}</button>
       <button type="button" id="restorePrevious">${L('Restore previous snapshot', '이전 정상 저장본 복원')}</button>
     </details>
-    <button type="button" id="migrateLegacy" hidden>${L('Confirm old data currency', '기존 데이터 통화 확인')}</button>
+    <button type="button" id="saveCurrentEntries" hidden>${L('Save current entries', '현재 입력 저장')}</button>
+    <button type="button" id="migrateLegacy" hidden>${L('Review previous saved copy (optional)', '이전 저장본 확인 (선택)')}</button>
     <p id="lastBackupStatus"></p>
     <p id="workspaceNotice" role="alert" hidden></p>`;
   document.querySelector('.header').after(bar);
@@ -404,8 +452,9 @@ function setupWorkspace() {
     if (loaded.status === 'legacy') {
       W.legacy = loaded.data;
       document.getElementById('migrateLegacy').hidden = false;
-      setNotice(L('Old data is preserved. Confirm its currency before continuing.', '기존 데이터는 보존되어 있습니다. 먼저 입력 통화를 확인하세요.'));
+      document.getElementById('saveCurrentEntries').hidden = false;
     } else if (loaded.status === 'error') {
+      document.getElementById('saveCurrentEntries').hidden = false;
       setNotice(L('Could not read saved data. Automatic saving is paused; restore a backup or download the stored original.', '저장 데이터를 읽지 못했습니다. 자동 저장은 중지되었습니다. 백업을 복원하거나 저장 원본을 다운로드하세요.'));
     }
   }
@@ -420,7 +469,7 @@ function setupWorkspace() {
   } catch (_) {}
   W.ready = true;
   document.getElementById('displayCurrency').addEventListener('change', e => setDisplayCurrency(e.target.value));
-  for (const [id, fn] of Object.entries({ refreshFx: () => refreshFx(), useManualFx, migrateLegacy: migrateLegacySave, downloadRecovery, restorePrevious, undoDelete })) {
+  for (const [id, fn] of Object.entries({ refreshFx: () => refreshFx(), useManualFx, migrateLegacy: migrateLegacySave, saveCurrentEntries, downloadRecovery, restorePrevious, undoDelete })) {
     document.getElementById(id).addEventListener('click', fn);
   }
   document.querySelector('.app').addEventListener('input', e => {
@@ -452,6 +501,7 @@ function setupWorkspace() {
   window.addEventListener('storage', e => {
     if (e.key === NWCore.KEY && e.newValue !== W.store.raw) {
       W.store.blocked = true;
+      document.getElementById('saveCurrentEntries').hidden = true;
       setStatus(L('Another tab changed this profile. Export your edits before reloading.', '다른 탭에서 프로필을 변경했습니다. 새로고침 전 수정 내용을 백업하세요.'), true);
     }
   });
@@ -462,7 +512,7 @@ function setupWorkspace() {
   renderAll();
   clearTimeout(saveTimeout);
   W.pending = false;
-  setStatus(W.store.blocked ? L('Automatic saving paused; original preserved.', '자동 저장 중지 · 원본 보존됨')
+  setStatus(W.store.blocked ? L('Calculations available · saving needs your confirmation.', '계산 가능 · 저장하려면 확인이 필요합니다.')
     : L('Saved only in this browser.', '이 브라우저에만 저장됩니다.'), W.store.blocked);
   updateFxStatus();
   refreshFx(false);
